@@ -1566,7 +1566,6 @@ pre code {
 }
 .back-to-top span {
   margin-right: 8px;
-  display: none;
 }
 .back-to-top .fa {
   text-align: center;
@@ -1621,9 +1620,6 @@ pre code {
   visibility: hidden;
 }
 .use-motion .post-body {
-  visibility: hidden;
-}
-.use-motion .collection-header {
   visibility: hidden;
 }
 .posts-collapse .post-content {
