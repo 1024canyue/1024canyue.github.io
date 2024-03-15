@@ -53,9 +53,18 @@
   </noscript>
 </head>
 
-<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion"><div id="cn_mirror" style="text-align: center;height:0vh;font-size:1.5vh;visibility: hidden">加载慢?<a href='./'>点我访问国内镜像(搭建中)</a></div>
+<script async>
+(function(){
+    var message = document.getElementById('cn_mirror');
+    var url = window.location.href
+    if (url.indexOf("github.io") != -1){
+        message.style.height = "3vh";
+        message.style.visibility = "visible";
+    }
+})();
+</script>
   <div class="headband"></div>
-
   <main class="main">
     <div class="column">
       <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
@@ -657,7 +666,7 @@
 
 
 <div class="copyright">
-  &copy; 
+  &copy; 2023 – 
   <span itemprop="copyrightYear">2024</span>
   <span class="with-love">
     <i class="fa fa-code"></i>
@@ -682,7 +691,7 @@
       </span>
     </span>
 </div>
-  <div class="powered-by">本站基于开源项目 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 开发 | 部署于GitHub Pages(有点慢请谅解)
+  <div class="powered-by">本站基于开源项目 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 开发 | 国内访问建议使用镜像
   </div>
 
     </div>
