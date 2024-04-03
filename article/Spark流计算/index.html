@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+<link rel="preconnect" href="https://cdn.staticfile.net" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdn.staticfile.net/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.staticfile.net/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.staticfile.net/fancyapps-ui/5.0.33/fancybox/fancybox.css" integrity="sha256-gkQVf8UKZgQ0HyuxL/VnacadJ+D2Kox2TCEBuNQg5+w=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.staticfile.net/pace/1.2.4/themes/silver/pace-theme-flash.css">
+  <script src="https://cdn.staticfile.net/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.canyue.top","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":17,"offset":12},"copycode":{"enable":true,"style":"default"},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInLeft","post_block":"fadeInUp","post_header":"fadeInTop","post_body":"fadeIn","coll_header":null,"sidebar":"fadeInUp","All available transition variants":"https://theme-next.js.org/animate/"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":true,"preload":false}}</script><script src="https://cdn.staticfile.net/hexo-theme-next/8.19.2/config.min.js"></script>
+
+    <meta name="description" content="什么是SparkStreaming 用于快速上手，有很多细节，后面有时间单独出  Spark Streaming 是Spark提供的一个流计算框架  点击跳转官方文档 与Flink类似，Spark Streaming也可从Kafka。Flume，TCP套接字等众多途径获取数据，也有map(),reduce(),windows()等等一系列的算子">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spark流计算">
+<meta property="og:url" content="https://blog.canyue.top/article/Spark%E6%B5%81%E8%AE%A1%E7%AE%97/index.html">
+<meta property="og:site_name" content="CanYue&#39;s house">
+<meta property="og:description" content="什么是SparkStreaming 用于快速上手，有很多细节，后面有时间单独出  Spark Streaming 是Spark提供的一个流计算框架  点击跳转官方文档 与Flink类似，Spark Streaming也可从Kafka。Flume，TCP套接字等众多途径获取数据，也有map(),reduce(),windows()等等一系列的算子">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.canyue.top/image/Spark%E6%B5%81%E8%AE%A1%E7%AE%97/%E7%AA%97%E5%8F%A3%E6%93%8D%E4%BD%9C.png">
+<meta property="og:image" content="https://blog.canyue.top/image/Spark%E6%B5%81%E8%AE%A1%E7%AE%97/%E6%97%B6%E9%97%B4%E8%AF%AD%E4%B9%89.png">
+<meta property="article:published_time" content="2023-06-29T06:34:28.000Z">
+<meta property="article:modified_time" content="2023-06-29T09:04:34.976Z">
+<meta property="article:author" content="CanYue">
+<meta property="article:tag" content="Spark">
+<meta property="article:tag" content="Spark Streaming">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.canyue.top/image/Spark%E6%B5%81%E8%AE%A1%E7%AE%97/%E7%AA%97%E5%8F%A3%E6%93%8D%E4%BD%9C.png">
+
+
+<link rel="canonical" href="https://blog.canyue.top/article/Spark%E6%B5%81%E8%AE%A1%E7%AE%97/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.canyue.top/article/Spark%E6%B5%81%E8%AE%A1%E7%AE%97/","path":"article/Spark流计算/","title":"Spark流计算"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Spark流计算 | CanYue's house</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">CanYue's house</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">welcome|欢迎来访</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-博客"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>博客</a></li><li class="menu-item menu-item-门面"><a href="/home" rel="section"><i class="fa fa-address-card fa-fw"></i>门面</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+	  
+
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFSparkStreaming"><span class="nav-number">1.</span> <span class="nav-text">什么是SparkStreaming</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%B0%8F%E8%AF%95%E7%89%9B%E5%88%80"><span class="nav-number">2.</span> <span class="nav-text">小试牛刀</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%BE%93%E5%85%A5"><span class="nav-number">3.</span> <span class="nav-text">输入</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E6%B5%81"><span class="nav-number">3.1.</span> <span class="nav-text">文件流</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A5%97%E6%8E%A5%E5%AD%97"><span class="nav-number">3.2.</span> <span class="nav-text">套接字</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#RDD%E9%98%9F%E5%88%97"><span class="nav-number">3.3.</span> <span class="nav-text">RDD队列</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Kafka"><span class="nav-number">3.4.</span> <span class="nav-text">Kafka</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Flume"><span class="nav-number">3.5.</span> <span class="nav-text">Flume</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#avro"><span class="nav-number">3.5.1.</span> <span class="nav-text">avro</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SparkSink"><span class="nav-number">3.5.2.</span> <span class="nav-text">SparkSink</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%87%AA%E5%AE%9A%E4%B9%89%E8%BE%93%E5%85%A5%E6%BA%90"><span class="nav-number">3.6.</span> <span class="nav-text">自定义输入源</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%93%8D%E4%BD%9C"><span class="nav-number">4.</span> <span class="nav-text">操作</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BD%AC%E6%8D%A2%E6%93%8D%E4%BD%9C"><span class="nav-number">4.1.</span> <span class="nav-text">转换操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AA%97%E5%8F%A3%E6%93%8D%E4%BD%9C"><span class="nav-number">4.2.</span> <span class="nav-text">窗口操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%8B%E4%BB%B6%E6%97%B6%E9%97%B4%E7%AA%97%E5%8F%A3"><span class="nav-number">4.2.1.</span> <span class="nav-text">事件时间窗口</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BE%93%E5%87%BA%E6%93%8D%E4%BD%9C"><span class="nav-number">4.3.</span> <span class="nav-text">输出操作</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#DStream-%E6%8C%81%E4%B9%85%E5%8C%96"><span class="nav-number">5.</span> <span class="nav-text">DStream 持久化</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#DStream-%E6%A3%80%E6%B5%8B%E7%82%B9"><span class="nav-number">6.</span> <span class="nav-text">DStream 检测点</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E9%85%8D%E7%BD%AE%E6%A3%80%E6%9F%A5%E7%82%B9"><span class="nav-number">6.1.</span> <span class="nav-text">如何配置检查点</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="CanYue"
+      src="/../image/avatar.jpg">
+  <p class="site-author-name" itemprop="name">CanYue</p>
+  <div class="site-description" itemprop="description">梳理知识的同时,希望也能帮助到你</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/1024canyue" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;1024canyue" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://gitee.com/canyue2048" title="Gitee → https:&#x2F;&#x2F;gitee.com&#x2F;canyue2048" rel="noopener me" target="_blank"><i class="fa fa-code fa-fw"></i>Gitee</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:lintaisheng@outlook.com" title="E-Mail → mailto:lintaisheng@outlook.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+<div id="diyClock">
+  <canvas id="canvas" style="width:65%; margin-top: 9px;padding: 0;">
+</div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh_CN" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdn.staticfile.net/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+<script async>
+(function(){
+        var WINDOW_WIDTH = 950;
+  		var WINDOW_HEIGHT = 200;
+  		var RADIUS = 8; //球半径
+  		var NUMBER_GAP = 25; //数字之间的间隙
+  		// var u=0.65; //碰撞能量损耗系数
+  		var context; //Canvas绘制上下文
+  		// var balls = []; //存储彩色的小球
+  		// const colors = ["#33B5E5","#0099CC","#AA66CC","#9933CC","#99CC00","#669900","#FFBB33","#FF8800","#FF4444","#CC0000"]; //彩色小球的颜色
+  		var currentNums = []; //屏幕显示的8个字符
+  		var digit =
+                  [
+                      [
+                          [0,0,1,1,1,0,0],
+                          [0,1,1,0,1,1,0],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [0,1,1,0,1,1,0],
+                          [0,0,1,1,1,0,0]
+                      ],//0
+                      [
+                          [0,0,0,1,1,0,0],
+                          [0,1,1,1,1,0,0],
+                          [0,0,0,1,1,0,0],
+                          [0,0,0,1,1,0,0],
+                          [0,0,0,1,1,0,0],
+                          [0,0,0,1,1,0,0],
+                          [0,0,0,1,1,0,0],
+                          [0,0,0,1,1,0,0],
+                          [0,0,0,1,1,0,0],
+                          [1,1,1,1,1,1,1]
+                      ],//1
+                      [
+                          [0,1,1,1,1,1,0],
+                          [1,1,0,0,0,1,1],
+                          [0,0,0,0,0,1,1],
+                          [0,0,0,0,1,1,0],
+                          [0,0,0,1,1,0,0],
+                          [0,0,1,1,0,0,0],
+                          [0,1,1,0,0,0,0],
+                          [1,1,0,0,0,0,0],
+                          [1,1,0,0,0,1,1],
+                          [1,1,1,1,1,1,1]
+                      ],//2
+                      [
+                          [1,1,1,1,1,1,1],
+                          [0,0,0,0,0,1,1],
+                          [0,0,0,0,1,1,0],
+                          [0,0,0,1,1,0,0],
+                          [0,0,1,1,1,0,0],
+                          [0,0,0,0,1,1,0],
+                          [0,0,0,0,0,1,1],
+                          [0,0,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [0,1,1,1,1,1,0]
+                      ],//3
+                      [
+                          [0,0,0,0,1,1,0],
+                          [0,0,0,1,1,1,0],
+                          [0,0,1,1,1,1,0],
+                          [0,1,1,0,1,1,0],
+                          [1,1,0,0,1,1,0],
+                          [1,1,1,1,1,1,1],
+                          [0,0,0,0,1,1,0],
+                          [0,0,0,0,1,1,0],
+                          [0,0,0,0,1,1,0],
+                          [0,0,0,1,1,1,1]
+                      ],//4
+                      [
+                          [1,1,1,1,1,1,1],
+                          [1,1,0,0,0,0,0],
+                          [1,1,0,0,0,0,0],
+                          [1,1,1,1,1,1,0],
+                          [0,0,0,0,0,1,1],
+                          [0,0,0,0,0,1,1],
+                          [0,0,0,0,0,1,1],
+                          [0,0,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [0,1,1,1,1,1,0]
+                      ],//5
+                      [
+                          [0,0,0,0,1,1,0],
+                          [0,0,1,1,0,0,0],
+                          [0,1,1,0,0,0,0],
+                          [1,1,0,0,0,0,0],
+                          [1,1,0,1,1,1,0],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [0,1,1,1,1,1,0]
+                      ],//6
+                      [
+                          [1,1,1,1,1,1,1],
+                          [1,1,0,0,0,1,1],
+                          [0,0,0,0,1,1,0],
+                          [0,0,0,0,1,1,0],
+                          [0,0,0,1,1,0,0],
+                          [0,0,0,1,1,0,0],
+                          [0,0,1,1,0,0,0],
+                          [0,0,1,1,0,0,0],
+                          [0,0,1,1,0,0,0],
+                          [0,0,1,1,0,0,0]
+                      ],//7
+                      [
+                          [0,1,1,1,1,1,0],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [0,1,1,1,1,1,0],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [0,1,1,1,1,1,0]
+                      ],//8
+                      [
+                          [0,1,1,1,1,1,0],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [0,1,1,1,0,1,1],
+                          [0,0,0,0,0,1,1],
+                          [0,0,0,0,0,1,1],
+                          [0,0,0,0,1,1,0],
+                          [0,0,0,1,1,0,0],
+                          [0,1,1,0,0,0,0]
+                      ],//9
+                      [
+                          [0,0,0,0],
+                          [0,0,0,0],
+                          [0,1,1,0],
+                          [0,1,1,0],
+                          [0,0,0,0],
+                          [0,0,0,0],
+                          [0,1,1,0],
+                          [0,1,1,0],
+                          [0,0,0,0],
+                          [0,0,0,0]
+                      ]//冒号
+                  ];
+
+  		function drawDatetime(cxt){
+  			var nums = [];
+
+  			context.fillStyle="#c4c4c4"
+  			var date = new Date();
+  			var offsetX = 60, offsetY = 30;
+  			var hours = date.getHours();
+  			var num1 = Math.floor(hours/10);
+  			var num2 = hours%10;
+  			nums.push({num: num1});
+  			nums.push({num: num2});
+  			nums.push({num: 10}); //冒号
+  			var minutes = date.getMinutes();
+  			var num1 = Math.floor(minutes/10);
+  			var num2 = minutes%10;
+  			nums.push({num: num1});
+  			nums.push({num: num2});
+  			nums.push({num: 10}); //冒号
+  			var seconds = date.getSeconds();
+  			var num1 = Math.floor(seconds/10);
+  			var num2 = seconds%10;
+  			nums.push({num: num1});
+  			nums.push({num: num2});
+
+  			for(var x = 0;x<nums.length;x++){
+  				nums[x].offsetX = offsetX;
+  				offsetX = drawSingleNumber(offsetX,offsetY, nums[x].num,cxt);
+  				//两个数字连一块，应该间隔一些距离
+  				if(x<nums.length-1){
+  					if((nums[x].num!=10) &&(nums[x+1].num!=10)){
+  						offsetX+=NUMBER_GAP;
+  					}
+  				}
+  			}
+
+            //彩球相关
+  			// if(currentNums.length ==0){
+  			// 	currentNums = nums;
+  			// }else{
+  			// 	//进行比较
+  			// 	for(var index = 0;index<currentNums.length;index++){
+  			// 		if(currentNums[index].num!=nums[index].num){
+  			// 			//不一样时，添加彩色小球
+  			// 			addBalls(nums[index]);
+  			// 			currentNums[index].num=nums[index].num;
+  			// 		}
+  			// 	}
+  			// }
+  			// renderBalls(cxt);
+  			// updateBalls();
+
+  			return date;
+  		}
+
+  		// function addBalls (item) {
+  		// 	var num = item.num;
+  		// 	var numMatrix = digit[num];
+  		// 	for(var y = 0;y<numMatrix.length;y++){
+  		// 		for(var x = 0;x<numMatrix[y].length;x++){
+  		// 			if(numMatrix[y][x]==1){
+  		// 				var ball={
+  		// 					offsetX:item.offsetX+RADIUS+RADIUS*2*x,
+  		// 					offsetY:30+RADIUS+RADIUS*2*y,
+  		// 					color:colors[Math.floor(Math.random()*colors.length)],
+  		// 					g:1.5+Math.random(),
+  		// 					vx:Math.pow(-1, Math.ceil(Math.random()*10))*4+Math.random(),
+  		// 					vy:-5
+  		// 				}
+  		// 				balls.push(ball);
+  		// 			}
+  		// 		}
+  		// 	}
+  		// }
+
+  		function renderBalls(cxt){
+  			for(var index = 0;index<balls.length;index++){
+  				cxt.beginPath();
+  				cxt.fillStyle=balls[index].color;
+  				cxt.arc(balls[index].offsetX, balls[index].offsetY, RADIUS, 0, 2*Math.PI);
+  				cxt.fill();
+  			}
+  		}
+
+  		function updateBalls () {
+  			var i =0;
+  			for(var index = 0;index<balls.length;index++){
+  				var ball = balls[index];
+  				ball.offsetX += ball.vx;
+  				ball.offsetY += ball.vy;
+  				ball.vy+=ball.g;
+  				if(ball.offsetY > (WINDOW_HEIGHT-RADIUS)){
+  					ball.offsetY= WINDOW_HEIGHT-RADIUS;
+  					ball.vy=-ball.vy*u;
+  				}
+  				if(ball.offsetX>RADIUS&&ball.offsetX<(WINDOW_WIDTH-RADIUS)){
+
+  					balls[i]=balls[index];
+  					i++;
+  				}
+  			}
+  			//去除出边界的球
+  			for(;i<balls.length;i++){
+  				balls.pop();
+  			}
+  		}
+  		function drawSingleNumber(offsetX, offsetY, num, cxt){
+  			var numMatrix = digit[num];
+  			for(var y = 0;y<numMatrix.length;y++){
+  				for(var x = 0;x<numMatrix[y].length;x++){
+  					if(numMatrix[y][x]==1){
+  						cxt.beginPath();
+  						cxt.arc(offsetX+RADIUS+RADIUS*2*x,offsetY+RADIUS+RADIUS*2*y,RADIUS,0,2*Math.PI);
+  						cxt.fill();
+  					}
+  				}
+  			}
+  			cxt.beginPath();
+  			offsetX += numMatrix[0].length*RADIUS*2;
+  			return offsetX;
+  		}
+
+  		var canvas = document.getElementById("canvas");
+  		canvas.width=WINDOW_WIDTH;
+  		canvas.height=WINDOW_HEIGHT;
+  		context = canvas.getContext("2d");
+
+  		//记录当前绘制的时刻
+  		var currentDate = new Date();
+
+  		setInterval(function(){
+  			//清空整个Canvas，重新绘制内容
+  			context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+  			drawDatetime(context);
+  		}, 50)
+})();
+</script>
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.canyue.top/article/Spark%E6%B5%81%E8%AE%A1%E7%AE%97/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/../image/avatar.jpg">
+      <meta itemprop="name" content="CanYue">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="CanYue's house">
+      <meta itemprop="description" content="梳理知识的同时,希望也能帮助到你">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Spark流计算 | CanYue's house">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Spark流计算
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+      
+
+      <time title="创建时间：2023-06-29 14:34:28 / 修改时间：17:04:34" itemprop="dateCreated datePublished" datetime="2023-06-29T14:34:28+08:00">2023-06-29</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%AC%94%E8%AE%B0%E5%88%86%E4%BA%AB/" itemprop="url" rel="index"><span itemprop="name">笔记分享</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>4.1k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>14 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="什么是SparkStreaming"><a href="#什么是SparkStreaming" class="headerlink" title="什么是SparkStreaming"></a>什么是SparkStreaming</h1><blockquote>
+<p>用于快速上手，有很多细节，后面有时间单独出</p>
+</blockquote>
+<p>Spark Streaming 是Spark提供的一个<code>流计算</code>框架  <a target="_blank" rel="noopener" href="https://spark.apache.org/docs/latest/streaming-programming-guide.html#initializing-streamingcontext">点击跳转官方文档</a></p>
+<p>与Flink类似，Spark Streaming也可从Kafka。Flume，TCP套接字等众多途径获取数据，也有map(),reduce(),windows()等等一系列的算子</p>
+<p><em><span id="more"></span></em></p>
+<p>Spark Streaming是基于Spark RDD Api（Spark Core Api）的扩展，最终的执行者还是Spark Core API，所以，与Flink不一样，Spark的流计算其实是使用微批实现的，所以在流计算过程可以使用RDD近乎相同的代码编写</p>
+<p>具体在工作时，Spark Streaming会将收到的原数据以<code>秒</code>为单位切片成多个RDD序列，该序列被成为<code>DStream</code>(Discretized Stream | 离散流)，DStream是Spark Streaming的一个高级抽象，用于表示类似Flink DataStream的哪种<code>连续不断</code>的数据，对一个DStream进行相应的算子计算，相当于对里面<code>所有的RDD</code>分别进行算子计算</p>
+<p>与Flink一样，每个Application的执行是一个<code>长期持久化</code>的运行任务，所以，每个应用程序都会被分配并<code>长期占用</code>一个集群的核心(本地运行则为线程)，所以，在运行较大项目时，请确保集群资源足够</p>
+<h1 id="小试牛刀"><a href="#小试牛刀" class="headerlink" title="小试牛刀"></a>小试牛刀</h1><p>如果你是初学者，先快速跟着我体验下Spark流计算</p>
+<p>首先我们要对POM文件添加相应的依赖</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!--spark streaming 流式计算库--&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.spark<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spark-streaming_$&#123;scala.version&#125;<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>$&#123;spark.version&#125;<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>简单颜色下，使用Spark去监听9999端口的套接字数据，并做词频统计</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.spark.<span class="type">SparkConf</span></span><br><span class="line"><span class="keyword">import</span> org.apache.spark.streaming.dstream.&#123;<span class="type">DStream</span>, <span class="type">ReceiverInputDStream</span>&#125;</span><br><span class="line"><span class="keyword">import</span> org.apache.spark.streaming.&#123;<span class="type">Seconds</span>, <span class="type">StreamingContext</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">Test01</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args: <span class="type">Array</span>[<span class="type">String</span>]): <span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="comment">//创建配置对象</span></span><br><span class="line">    <span class="keyword">val</span> conf = <span class="keyword">new</span> <span class="type">SparkConf</span>()</span><br><span class="line">    conf.setMaster(<span class="string">&quot;local[*]&quot;</span>)</span><br><span class="line">    conf.setAppName(<span class="string">&quot;Test01&quot;</span>)</span><br><span class="line">    <span class="comment">//创建Spark Streaming Context</span></span><br><span class="line">    <span class="keyword">val</span> ssc = <span class="keyword">new</span> <span class="type">StreamingContext</span>(conf,<span class="type">Seconds</span>(<span class="number">10</span>))</span><br><span class="line">    <span class="comment">//你要在创建上下文是显性的告诉Spark DStream的数据时按几秒分割的,这我后面会讲</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">val</span> stream:<span class="type">ReceiverInputDStream</span>[<span class="type">String</span>] = ssc.socketTextStream(<span class="string">&quot;127.0.0.1&quot;</span>,<span class="number">9999</span>)</span><br><span class="line"></span><br><span class="line">    stream</span><br><span class="line">      .flatMap(_.split(<span class="string">&quot; &quot;</span>))</span><br><span class="line">      .map((_,<span class="number">1</span>))</span><br><span class="line">      .reduceByKey(_+_)</span><br><span class="line">      .print()</span><br><span class="line"></span><br><span class="line">    <span class="comment">//执行</span></span><br><span class="line">    ssc.start()               <span class="comment">//开始计算</span></span><br><span class="line">    ssc.awaitTermination()    <span class="comment">//等待计算结果出来</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用netcat，创建个服务端的套接字接口,随后发两条数据过去</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~]# nc -lk 9999</span><br><span class="line">aaa bbb</span><br><span class="line">aaa ccc</span><br></pre></td></tr></table></figure>
+
+<p>运行结果如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">-------------------------------------------</span><br><span class="line">Time: 1666512480000 ms</span><br><span class="line">-------------------------------------------</span><br><span class="line">(bbb,1)</span><br><span class="line">(ccc,1)</span><br><span class="line">(aaa,2)</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>可以看到，在设置了微批间隔为10秒后，相单于每10秒开一个滚动窗口，不过严格来说不能叫窗口，这仅是各个微批的批大小罢了</p>
+<p>当然，为了好理解，前期直接将其看成时间窗口就行</p>
+</blockquote>
+<h1 id="输入"><a href="#输入" class="headerlink" title="输入"></a>输入</h1><p>基本上每个DStream 输入都会创建一个Receiver用于持久化监听数据(除了来自文件的流，其他都要)，每个Receiver会<code>独占</code>一个集群核心(本地运行则是线程)</p>
+<h2 id="文件流"><a href="#文件流" class="headerlink" title="文件流"></a>文件流</h2><p>文件流不仅仅可以是本地文件系统，也可是分布式文件系统，例如HDFS</p>
+<p>textFileStream会去检查文件夹内<code>新增</code>的内容</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.spark.<span class="type">SparkConf</span></span><br><span class="line"><span class="keyword">import</span> org.apache.spark.streaming.dstream.<span class="type">DStream</span></span><br><span class="line"><span class="keyword">import</span> org.apache.spark.streaming.&#123;<span class="type">Seconds</span>, <span class="type">StreamingContext</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">Test01</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args: <span class="type">Array</span>[<span class="type">String</span>]): <span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="comment">//创建配置对象</span></span><br><span class="line">    <span class="keyword">val</span> conf = <span class="keyword">new</span> <span class="type">SparkConf</span>()</span><br><span class="line">    conf.setMaster(<span class="string">&quot;local[*]&quot;</span>)</span><br><span class="line">    conf.setAppName(<span class="string">&quot;Test01&quot;</span>)</span><br><span class="line">    <span class="comment">//创建Spark Streaming Context</span></span><br><span class="line">    <span class="keyword">val</span> ssc = <span class="keyword">new</span> <span class="type">StreamingContext</span>(conf,<span class="type">Seconds</span>(<span class="number">10</span>))</span><br><span class="line"></span><br><span class="line">    <span class="keyword">val</span> stream:<span class="type">DStream</span>[<span class="type">String</span>] = ssc.textFileStream(<span class="string">&quot;file:///D:/SparkProject/word/&quot;</span>)</span><br><span class="line"></span><br><span class="line">    stream</span><br><span class="line">      .flatMap(_.split(<span class="string">&quot; &quot;</span>))</span><br><span class="line">      .map((_,<span class="number">1</span>))</span><br><span class="line">      .reduceByKey(_+_)</span><br><span class="line">      .print()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">//执行</span></span><br><span class="line">    ssc.start()</span><br><span class="line">    ssc.awaitTermination()</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在word文件夹创建一个文件 内容如下</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">aaa bbb</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">-------------------------------------------</span><br><span class="line"><span class="type">Time</span>: <span class="number">1666514150000</span> ms</span><br><span class="line">-------------------------------------------</span><br><span class="line">(aaa,<span class="number">1</span>)</span><br><span class="line">(bbb,<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+
+<h2 id="套接字"><a href="#套接字" class="headerlink" title="套接字"></a>套接字</h2><p>监听本地9999端口，上面小试牛刀演示过了</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> stream:<span class="type">ReceiverInputDStream</span>[<span class="type">String</span>] = ssc.socketTextStream(<span class="string">&quot;localhost&quot;</span>,<span class="number">9999</span>)</span><br></pre></td></tr></table></figure>
+
+<h2 id="RDD队列"><a href="#RDD队列" class="headerlink" title="RDD队列"></a>RDD队列</h2><p>queueStream会监听RDD序列中新增内容</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.spark.<span class="type">SparkConf</span></span><br><span class="line"><span class="keyword">import</span> org.apache.spark.rdd.<span class="type">RDD</span></span><br><span class="line"><span class="keyword">import</span> org.apache.spark.streaming.dstream.<span class="type">DStream</span></span><br><span class="line"><span class="keyword">import</span> org.apache.spark.streaming.&#123;<span class="type">Seconds</span>, <span class="type">StreamingContext</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> scala.collection.mutable</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">Test01</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args: <span class="type">Array</span>[<span class="type">String</span>]): <span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="comment">//创建配置对象</span></span><br><span class="line">    <span class="keyword">val</span> conf = <span class="keyword">new</span> <span class="type">SparkConf</span>()</span><br><span class="line">    conf.setMaster(<span class="string">&quot;local[*]&quot;</span>)</span><br><span class="line">    conf.setAppName(<span class="string">&quot;Test01&quot;</span>)</span><br><span class="line">    <span class="comment">//创建Spark Streaming Context</span></span><br><span class="line">    <span class="keyword">val</span> ssc = <span class="keyword">new</span> <span class="type">StreamingContext</span>(conf,<span class="type">Seconds</span>(<span class="number">10</span>))    <span class="comment">//你要在创建上下文是显性的告诉Spark DStream的数据时按几秒分割的</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">val</span> sc = ssc.sparkContext</span><br><span class="line"></span><br><span class="line">    <span class="keyword">val</span> myRDDs = <span class="keyword">new</span> mutable.<span class="type">Queue</span>[<span class="type">RDD</span>[<span class="type">Int</span>]]()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">val</span> stream = ssc.queueStream(myRDDs)</span><br><span class="line"></span><br><span class="line">    stream</span><br><span class="line">      .map((<span class="number">1</span>,_))</span><br><span class="line">      .reduce((a,b) =&gt; (a._1 + b._1 , a._2 + b._2))    <span class="comment">//(count,sum)</span></span><br><span class="line">      .map(d =&gt; <span class="string">&quot;数据条数%d；和为%d&quot;</span>.format(d._1,d._2))</span><br><span class="line">      .print()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">//执行</span></span><br><span class="line">    ssc.start()               <span class="comment">//开始计算</span></span><br><span class="line"><span class="comment">//    ssc.awaitTermination()    //不等，继续执行</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(i &lt;- <span class="number">1</span> to <span class="number">30</span>)&#123;     <span class="comment">//循环30次</span></span><br><span class="line">      myRDDs += sc.makeRDD(<span class="type">Array</span>(i,i+<span class="number">1</span>,i+<span class="number">2</span>))   <span class="comment">//向序列中新增RDD</span></span><br><span class="line">      <span class="type">Thread</span>.sleep(<span class="number">1000</span>)    <span class="comment">//间隔1秒，全部跑完要30秒</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    ssc.stop()</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">-------------------------------------------</span><br><span class="line"><span class="type">Time</span>: <span class="number">1666515630000</span> ms</span><br><span class="line">-------------------------------------------</span><br><span class="line">数据条数<span class="number">3</span>；和为<span class="number">6</span></span><br><span class="line"></span><br><span class="line">-------------------------------------------</span><br><span class="line"><span class="type">Time</span>: <span class="number">1666515640000</span> ms</span><br><span class="line">-------------------------------------------</span><br><span class="line">数据条数<span class="number">3</span>；和为<span class="number">9</span></span><br><span class="line"></span><br><span class="line">-------------------------------------------</span><br><span class="line"><span class="type">Time</span>: <span class="number">1666515650000</span> ms</span><br><span class="line">-------------------------------------------</span><br><span class="line">数据条数<span class="number">3</span>；和为<span class="number">12</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="Kafka"><a href="#Kafka" class="headerlink" title="Kafka"></a>Kafka</h2><blockquote>
+<p>这个实战中比较常见，多讲几句</p>
+</blockquote>
+<p>Spark提供了两套Kafka整合方案，<strong>spark-streaming-kafka-0-8</strong>和<strong>spark-streaming-kafka-0-10</strong>，前者已经在Spark2.3.0后弃用，所以下面我<code>仅针对0-10</code></p>
+<p>所以我们要在POM文件添加这个依赖</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!--spark 连接kafka--&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.spark<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spark-streaming-kafka-0-10_$&#123;scala.version&#125;<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.4.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+
+<p>我们可以通过调用<code>KafkaUtils</code>对象的<code>createDirectStream</code>方法来创建输入流</p>
+<p>createDirectStream有三个参数</p>
+<ul>
+<li><p>ssc 就是当前的流环境上下文</p>
+</li>
+<li><p>locationStrategy <code>位置策略</code>,Saprk Streaming提供了三种，具体还在研究，分别是</p>
+</li>
+<li><ul>
+<li><em>PreferConsistent</em>  它将在所有的 Executors 上均匀分配分区；</li>
+<li><em>PreferBrokers</em>     当 Spark 的 Executor 与 Kafka Broker 在同一机器上时可以选择该选项，它优先将该 Broker 上的首领分区分配给该机器上的 Executor；</li>
+<li><em>PreferFixed</em>       可以指定主题分区与特定主机的映射关系，显示地将分区分配到特定的主机</li>
+</ul>
+</li>
+<li><p>consumerStrategy <code>消费者策略</code>，分为如下两种</p>
+</li>
+<li><ul>
+<li><p>Subscribe[K,V]  		根据主题集合订阅</p>
+<p>Subscribe有两个参数</p>
+<p>​	<em>topic</em>             传入一个字符串集合           将订阅集合内所有的Topic</p>
+<p>​	<em>kafkaParams</em>		Map[String,Object]        用于定义Kafka消费者的参数</p>
+</li>
+<li><p>SubscribePattern[K,V]   根据正则订阅</p>
+<p>SubscribePattern也有两个参数</p>
+<p>​	pattern			 java.util.regex.Pattern   正则表达式</p>
+<p>​	<em>kafkaParams</em>		Map[String,Object]        用于定义Kafka消费者的参数</p>
+</li>
+</ul>
+</li>
+</ul>
+<hr>
+
+<p>监听到的流中的每个数据都是一个<code>ConsumerRecord[K, V]</code> 的实例，其中包含如下内容,通常我们只需要拿到值就行，如下：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ConsumerRecord</span>(</span><br><span class="line">     topic = test,                                                <span class="comment">/*主题*/</span></span><br><span class="line">     partition = <span class="number">0</span>,                                               <span class="comment">/*分区号*/</span></span><br><span class="line">     offset = <span class="number">15</span>,                                                 <span class="comment">/*偏移量*/</span></span><br><span class="line">     <span class="type">CreateTime</span> = <span class="number">1666527833877</span>,                                  <span class="comment">/*消息创建的时间戳*/</span></span><br><span class="line">     serialized key size = <span class="number">-1</span>,                                    <span class="comment">/*键序列化器长度*/</span></span><br><span class="line">     serialized value size = <span class="number">5</span>,                                   <span class="comment">/*值序列化器长度*/</span></span><br><span class="line">     headers = <span class="type">RecordHeaders</span>(headers = [], isReadOnly = <span class="literal">false</span>),   <span class="comment">/*头部数据*/</span></span><br><span class="line">     key = <span class="literal">null</span>,                                                  <span class="comment">/*键*/</span></span><br><span class="line">     value = aaaaa                                                <span class="comment">/*值*/</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>来，我们简单实操一下</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.kafka.common.serialization.<span class="type">StringDeserializer</span></span><br><span class="line"><span class="keyword">import</span> org.apache.log4j.<span class="type">Level</span>._</span><br><span class="line"><span class="keyword">import</span> org.apache.log4j.<span class="type">Logger</span></span><br><span class="line"><span class="keyword">import</span> org.apache.spark.<span class="type">SparkConf</span></span><br><span class="line"><span class="keyword">import</span> org.apache.spark.streaming.kafka010.<span class="type">KafkaUtils</span></span><br><span class="line"><span class="keyword">import</span> org.apache.spark.streaming.kafka010.<span class="type">ConsumerStrategies</span>.<span class="type">Subscribe</span></span><br><span class="line"><span class="keyword">import</span> org.apache.spark.streaming.kafka010.<span class="type">LocationStrategies</span>.<span class="type">PreferConsistent</span></span><br><span class="line"><span class="keyword">import</span> org.apache.spark.streaming.&#123;<span class="type">Seconds</span>, <span class="type">StreamingContext</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">Test01</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args: <span class="type">Array</span>[<span class="type">String</span>]): <span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="comment">//调下日志，看的不爽</span></span><br><span class="line">    <span class="type">Logger</span>.getLogger(<span class="string">&quot;org&quot;</span>).setLevel(<span class="type">ERROR</span>)</span><br><span class="line">    <span class="comment">//创建配置对象</span></span><br><span class="line">    <span class="keyword">val</span> conf = <span class="keyword">new</span> <span class="type">SparkConf</span>()</span><br><span class="line">    conf.setMaster(<span class="string">&quot;local[*]&quot;</span>)</span><br><span class="line">    conf.setAppName(<span class="string">&quot;Test01&quot;</span>)</span><br><span class="line">    <span class="comment">//Spark 出于性能的考虑，Spark2.0 开始支持另外一种 Kryo 序列化机制。速度约是Java自带的10 倍。</span></span><br><span class="line">    <span class="comment">//这里必须要指定序列化器，不然将会出现Kafka中的消息无法被序列化的情况</span></span><br><span class="line">    conf.set(<span class="string">&quot;spark.serializer&quot;</span>, <span class="string">&quot;org.apache.spark.serializer.KryoSerializer&quot;</span>)</span><br><span class="line">    <span class="comment">//创建Spark Streaming Context</span></span><br><span class="line">    <span class="keyword">val</span> ssc = <span class="keyword">new</span> <span class="type">StreamingContext</span>(conf,<span class="type">Seconds</span>(<span class="number">10</span>))</span><br><span class="line"></span><br><span class="line">    <span class="comment">//定义消费的Topic，支持多个，通过返回值中的topic属性区分</span></span><br><span class="line">    <span class="keyword">val</span> topics = <span class="type">Array</span>(<span class="string">&quot;test&quot;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">//配置Kafka消费者的属性</span></span><br><span class="line">    <span class="keyword">val</span> kafkaParams = <span class="type">Map</span>[<span class="type">String</span>,<span class="type">Object</span>] (</span><br><span class="line">      <span class="comment">//服务器地址</span></span><br><span class="line">      <span class="string">&quot;bootstrap.servers&quot;</span> -&gt; <span class="string">&quot;192.168.1.2:9092&quot;</span>,</span><br><span class="line">      <span class="comment">//Key的反序列化类</span></span><br><span class="line">      <span class="string">&quot;key.deserializer&quot;</span> -&gt; classOf[<span class="type">StringDeserializer</span>],</span><br><span class="line">      <span class="comment">//Value的反序列化类</span></span><br><span class="line">      <span class="string">&quot;value.deserializer&quot;</span> -&gt; classOf[<span class="type">StringDeserializer</span>],</span><br><span class="line">      <span class="comment">//消费者组ID</span></span><br><span class="line">      <span class="string">&quot;group.id&quot;</span> -&gt; <span class="string">&quot;1&quot;</span>,</span><br><span class="line">      <span class="comment">//不让Kafka自动提交偏移量，由Spark提交</span></span><br><span class="line">      <span class="string">&quot;enable.auto.commit&quot;</span> -&gt; (<span class="literal">false</span>:java.lang.<span class="type">Boolean</span>)</span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line">    <span class="comment">//创建DStream</span></span><br><span class="line">    <span class="keyword">val</span> stream = <span class="type">KafkaUtils</span>.createDirectStream(</span><br><span class="line">      ssc,                                                 <span class="comment">//指定是流上下文</span></span><br><span class="line">      <span class="type">PreferConsistent</span>,                                    <span class="comment">//位置策略(详情看上面的理论)</span></span><br><span class="line">      <span class="type">Subscribe</span>[<span class="type">String</span>,<span class="type">String</span>](topics,kafkaParams)         <span class="comment">//消费者策略(详情看上面的理论)</span></span><br><span class="line"></span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line">    <span class="comment">//刚刚的消息在value中，所以，我们要拿出value中的值进行下一步操作</span></span><br><span class="line">    <span class="comment">//剩下的，就是熟悉的计数操作</span></span><br><span class="line">    stream</span><br><span class="line">      .map(_.value)</span><br><span class="line">      .flatMap(_.split(<span class="string">&quot; &quot;</span>))</span><br><span class="line">      .map((_,<span class="number">1</span>))</span><br><span class="line">      .reduceByKey(_+_)</span><br><span class="line">      .print()</span><br><span class="line"></span><br><span class="line">    ssc.start()</span><br><span class="line">    ssc.awaitTermination()</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">-------------------------------------------</span><br><span class="line"><span class="type">Time</span>: <span class="number">1666528560000</span> ms</span><br><span class="line">-------------------------------------------</span><br><span class="line">(aa,<span class="number">2</span>)</span><br><span class="line">(bb,<span class="number">1</span>)</span><br><span class="line">(cc,<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+
+<h2 id="Flume"><a href="#Flume" class="headerlink" title="Flume"></a>Flume</h2><p>这里是特指因项目奇葩需求，需要直接使用Flume Sink到Spark 而不像常规的方法去依赖Kafka</p>
+<p>不过官方已经<code>Spark2.3.0弃用了该方法</code>，我做实验用的2.1.1，还是可以再玩玩</p>
+<p>让Flume直接Sink到Kafka有两种方式可以实现</p>
+<p>准备让Flume去监听服务器端9999端口，然后通过两种sink尝试将数据下沉到Spark</p>
+<h3 id="avro"><a href="#avro" class="headerlink" title="avro"></a>avro</h3><p>尝试过将多个Flume连接在一起的一定对他不陌生，该Sink是Flume原生自带的</p>
+<p>先编写FLume配置文件</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">a1.sources</span> = <span class="string">r1</span></span><br><span class="line"><span class="attr">a1.channels</span> = <span class="string">c1</span></span><br><span class="line"><span class="attr">a1.sinks</span> = <span class="string">k1</span></span><br><span class="line"></span><br><span class="line"><span class="attr">a1.sources.r1.type</span> = <span class="string">netcat</span></span><br><span class="line"><span class="attr">a1.sources.r1.bind</span> = <span class="string">master</span></span><br><span class="line"><span class="attr">a1.sources.r1.port</span> = <span class="string">9999</span></span><br><span class="line"><span class="attr">a1.sources.r1.channels</span> = <span class="string">c1</span></span><br><span class="line"></span><br><span class="line"><span class="attr">a1.channels.c1.type</span> = <span class="string">memory</span></span><br><span class="line"></span><br><span class="line"><span class="attr">a1.sinks.k1.type</span> = <span class="string">avro</span></span><br><span class="line"><span class="attr">a1.sinks.k1.hostname</span> = <span class="string">192.168.159.136</span></span><br><span class="line"><span class="attr">a1.sinks.k1.port</span> = <span class="string">9998</span></span><br><span class="line"><span class="attr">a1.sinks.k1.channel</span> = <span class="string">c1</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p>导入环境</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!--Spark 连接 flume--&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.spark<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spark-streaming-flume_$&#123;scala.version&#125;<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.4.1<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>直接使用</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> stream = <span class="type">FlumeUtils</span>.createStream(</span><br><span class="line">      ssc,</span><br><span class="line">      <span class="string">&quot;192.168.159.136&quot;</span>,        <span class="comment">//绑定avro的主机名</span></span><br><span class="line">      <span class="number">8888</span>                          <span class="comment">//端口</span></span><br><span class="line">    )</span><br><span class="line">      .map(d =&gt; <span class="keyword">new</span> <span class="type">String</span>(d.event.getBody.array()))</span><br><span class="line"></span><br><span class="line">stream</span><br><span class="line">  .flatMap(_.split(<span class="string">&quot; &quot;</span>))</span><br><span class="line">  .map((_,<span class="number">1</span>))</span><br><span class="line">  .reduceByKey(_+_)</span><br><span class="line">  .print()</span><br></pre></td></tr></table></figure>
+
+<h3 id="SparkSink"><a href="#SparkSink" class="headerlink" title="SparkSink"></a>SparkSink</h3><p>先放着，我还在研究</p>
+<p>Flume安装路径下要放入对应依赖</p>
+<p>sink的type &#x3D; org.apache.spark.streaming.flume.sink.SparkSink</p>
+<h2 id="自定义输入源"><a href="#自定义输入源" class="headerlink" title="自定义输入源"></a>自定义输入源</h2><p>实现一个自定义数据源，需要实现一个Receiver类</p>
+<p>直接来看源码比较直观，我把源码精简了下，想要往深处了解的可以直接翻源码，<code>源码建议小白好好看，不然不知道我接下来在干嘛</code></p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//传入一个存储级别，这属于RDD持久化的知识点，我有空整理下发</span></span><br><span class="line"><span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">Receiver</span>[<span class="type">T</span>](<span class="params">val storageLevel: <span class="type">StorageLevel</span></span>) <span class="keyword">extends</span> <span class="title">Serializable</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//当Receiver启动时，系统会调用此方法。（需要实现）</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">onStart</span></span>(): <span class="type">Unit</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">//当Receiver停止时，系统调用此方法。在onStart()中设置的所有资源(线程、缓冲区等)必须在此方法中清除。 （需要实现）</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">onStop</span></span>(): <span class="type">Unit</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">// 覆盖它以指定一个首选主机名</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">preferredLocation</span></span>: <span class="type">Option</span>[<span class="type">String</span>] = <span class="type">None</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">// 将接受的数据聚合在一起，然后放入Spark的内存中</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">store</span></span>(dataItem: <span class="type">T</span>) &#123;</span><br><span class="line">    supervisor.pushSingle(dataItem)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//报告接收数据的异常。</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">reportError</span></span>(message: <span class="type">String</span>, throwable: <span class="type">Throwable</span>) &#123;</span><br><span class="line">    supervisor.reportError(message, throwable)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//通过调用onStop()和onStart()重启Receiver，关闭与启动的间隔可在Spark配置文件Spark.streaming.receiverrestartdelay中定义</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">restart</span></span>(message: <span class="type">String</span>) &#123;</span><br><span class="line">    supervisor.restartReceiver(message)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 终止Receiver</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">stop</span></span>(message: <span class="type">String</span>) &#123;</span><br><span class="line">    supervisor.stop(message, <span class="type">None</span>)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 返回Receiver是否启动</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">isStarted</span></span>(): <span class="type">Boolean</span> = &#123;</span><br><span class="line">    supervisor.isReceiverStarted()</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 返回Receiver是否关闭</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">isStopped</span></span>(): <span class="type">Boolean</span> = &#123;</span><br><span class="line">    supervisor.isReceiverStopped()</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//返回Receiver的输入流的ID</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">streamId</span></span>: <span class="type">Int</span> = id</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Identifier of the stream this receiver is associated with. */</span></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">var</span> id: <span class="type">Int</span> = <span class="number">-1</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Handler object that runs the receiver. This is instantiated lazily in the worker. */</span></span><br><span class="line">  <span class="meta">@transient</span> <span class="keyword">private</span> <span class="keyword">var</span> _supervisor: <span class="type">ReceiverSupervisor</span> = <span class="literal">null</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Set the ID of the DStream that this receiver is associated with. */</span></span><br><span class="line">  <span class="keyword">private</span>[streaming] <span class="function"><span class="keyword">def</span> <span class="title">setReceiverId</span></span>(_id: <span class="type">Int</span>) &#123;</span><br><span class="line">    id = _id</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Attach Network Receiver executor to this receiver. */</span></span><br><span class="line">  <span class="keyword">private</span>[streaming] <span class="function"><span class="keyword">def</span> <span class="title">attachSupervisor</span></span>(exec: <span class="type">ReceiverSupervisor</span>) &#123;</span><br><span class="line">    assert(_supervisor == <span class="literal">null</span>)</span><br><span class="line">    _supervisor = exec</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Get the attached supervisor. */</span></span><br><span class="line">  <span class="keyword">private</span>[streaming] <span class="function"><span class="keyword">def</span> <span class="title">supervisor</span></span>: <span class="type">ReceiverSupervisor</span> = &#123;</span><br><span class="line">    assert(_supervisor != <span class="literal">null</span>,</span><br><span class="line">      <span class="string">&quot;A ReceiverSupervisor has not been attached to the receiver yet. Maybe you are starting &quot;</span> +</span><br><span class="line">        <span class="string">&quot;some computation in the receiver before the Receiver.onStart() has been called.&quot;</span>)</span><br><span class="line">    _supervisor</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>来，实操，自定义一个Receiver用于监听套接字</p>
+<p>我们需要实现其中的onStart()与onStop()方法</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.log4j.<span class="type">Level</span>._</span><br><span class="line"><span class="keyword">import</span> org.apache.log4j.<span class="type">Logger</span></span><br><span class="line"><span class="keyword">import</span> org.apache.spark.<span class="type">SparkConf</span></span><br><span class="line"><span class="keyword">import</span> org.apache.spark.storage.<span class="type">StorageLevel</span></span><br><span class="line"><span class="keyword">import</span> org.apache.spark.streaming.receiver.<span class="type">Receiver</span></span><br><span class="line"><span class="keyword">import</span> org.apache.spark.streaming.&#123;<span class="type">Seconds</span>, <span class="type">StreamingContext</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.&#123;<span class="type">BufferedReader</span>, <span class="type">InputStreamReader</span>&#125;</span><br><span class="line"><span class="keyword">import</span> java.net.<span class="type">Socket</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">Test01</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args: <span class="type">Array</span>[<span class="type">String</span>]): <span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="comment">//调下日志，看的不舒服</span></span><br><span class="line">    <span class="type">Logger</span>.getLogger(<span class="string">&quot;org&quot;</span>).setLevel(<span class="type">ERROR</span>)</span><br><span class="line">    <span class="comment">//创建配置对象</span></span><br><span class="line">    <span class="keyword">val</span> conf = <span class="keyword">new</span> <span class="type">SparkConf</span>()</span><br><span class="line">    conf.setMaster(<span class="string">&quot;local[*]&quot;</span>)</span><br><span class="line">    conf.setAppName(<span class="string">&quot;Test01&quot;</span>)</span><br><span class="line">    <span class="comment">//创建Spark Streaming Context</span></span><br><span class="line">    <span class="keyword">val</span> ssc = <span class="keyword">new</span> <span class="type">StreamingContext</span>(conf,<span class="type">Seconds</span>(<span class="number">10</span>))</span><br><span class="line"></span><br><span class="line">    <span class="keyword">val</span> stream = ssc             <span class="comment">//直接传入实例化对象</span></span><br><span class="line">      .receiverStream(<span class="keyword">new</span> <span class="type">MySocketReceiver</span>(<span class="string">&quot;192.168.159.136&quot;</span>,<span class="number">9999</span>))</span><br><span class="line"></span><br><span class="line">    stream</span><br><span class="line">      .flatMap(_.split(<span class="string">&quot; &quot;</span>))</span><br><span class="line">      .map((_,<span class="number">1</span>))</span><br><span class="line">      .reduceByKey(_+_)</span><br><span class="line">      .print()</span><br><span class="line">    </span><br><span class="line">    ssc.start()</span><br><span class="line">    ssc.awaitTermination()</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//自定义Receiver</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MySocketReceiver</span>(<span class="params">host:<span class="type">String</span>,port:<span class="type">Int</span></span>) <span class="keyword">extends</span> <span class="title">Receiver</span>[<span class="type">String</span>](<span class="params"><span class="type">StorageLevel</span>.<span class="type">MEMORY_ONLY</span></span>) </span>&#123;</span><br><span class="line">  <span class="comment">//先定义一个方法，用于连接Socket并接收数据</span></span><br><span class="line">  <span class="keyword">private</span> <span class="function"><span class="keyword">def</span> <span class="title">receiver</span></span>(): <span class="type">Unit</span> =&#123;</span><br><span class="line">    <span class="keyword">var</span> socket:<span class="type">Socket</span> = <span class="literal">null</span></span><br><span class="line">    <span class="keyword">var</span> input:<span class="type">String</span> = <span class="literal">null</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      socket = <span class="keyword">new</span> <span class="type">Socket</span>(host,port)</span><br><span class="line">      <span class="comment">//读数据</span></span><br><span class="line">      <span class="keyword">val</span> reader = <span class="keyword">new</span> <span class="type">BufferedReader</span>(</span><br><span class="line">        <span class="keyword">new</span> <span class="type">InputStreamReader</span>(socket.getInputStream,<span class="string">&quot;UTF-8&quot;</span>)</span><br><span class="line">      )</span><br><span class="line">      input = reader.readLine()</span><br><span class="line">      <span class="keyword">while</span> (isStarted &amp;&amp; input != <span class="literal">null</span>)&#123;     <span class="comment">//Receiver启动且输入非空</span></span><br><span class="line">        store(input)               <span class="comment">//放入Spark的内存中</span></span><br><span class="line">        input = reader.readLine()  <span class="comment">//下一条</span></span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">//释放资源</span></span><br><span class="line">      reader.close()</span><br><span class="line">      socket.close()</span><br><span class="line">      <span class="comment">//重启Receiver，在套接字服务器再次启动时还能继续连接</span></span><br><span class="line">      restart(<span class="string">&quot;Try connect again and restart receiver...&quot;</span>)</span><br><span class="line">    &#125;<span class="keyword">catch</span> &#123;</span><br><span class="line">          <span class="comment">//连接异常</span></span><br><span class="line">      <span class="keyword">case</span> ex1:java.net.<span class="type">ConnectException</span> =&gt; &#123;</span><br><span class="line">        <span class="comment">//尝试重新连接</span></span><br><span class="line">        restart(<span class="string">&quot;As error occurred while connecting to [%s:%d] ,Try connect again now...&quot;</span>.format(host,port))</span><br><span class="line">      &#125;</span><br><span class="line">        <span class="comment">//未知异常，停止Receiver</span></span><br><span class="line">      <span class="keyword">case</span> ex02:<span class="type">Exception</span> =&gt; &#123;</span><br><span class="line">        stop(<span class="string">&quot;Unknown error,receiver stopped...&quot;</span>)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">onStart</span></span>(): <span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="comment">//定义一个线程，帮我开启刚刚写的连接器</span></span><br><span class="line">    <span class="keyword">new</span> <span class="type">Thread</span>(<span class="string">&quot;Socket Receiver&quot;</span>)&#123;</span><br><span class="line">      <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">run</span></span>(): <span class="type">Unit</span> = &#123;</span><br><span class="line">        receiver()</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;.start()</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">onStop</span></span>(): <span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="type">Logger</span>.getRootLogger.info(<span class="string">&quot;Receiver Stopped Now...&quot;</span>)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">-------------------------------------------</span><br><span class="line"><span class="type">Time</span>: <span class="number">1666593630000</span> ms</span><br><span class="line">-------------------------------------------</span><br><span class="line">(bbb,<span class="number">1</span>)</span><br><span class="line">(ddd,<span class="number">1</span>)</span><br><span class="line">(ccc,<span class="number">1</span>)</span><br><span class="line">(aaa,<span class="number">3</span>)</span><br></pre></td></tr></table></figure>
+
+<h1 id="操作"><a href="#操作" class="headerlink" title="操作"></a>操作</h1><p>我个人将数据转换、窗口计算，合并至操作中</p>
+<h2 id="转换操作"><a href="#转换操作" class="headerlink" title="转换操作"></a>转换操作</h2><p>使用起来和RDD算子类似，我不多赘述,</p>
+<table>
+<thead>
+<tr>
+<th>转换</th>
+<th>概述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>map(<em>func</em>)</td>
+<td>通过函数<em>func</em>传递源DStream的每个元素，返回一个新的DStream。</td>
+</tr>
+<tr>
+<td>flatMap(<em>func</em>)</td>
+<td>类似于map，但是每个输入项都可以映射到0个或多个输出项。</td>
+</tr>
+<tr>
+<td>filter(<em>func</em>)</td>
+<td>通过<em>func</em>的返回，保留true的记录，返回一个新的DStream。</td>
+</tr>
+<tr>
+<td>repartition(<em>numPartitions</em>)</td>
+<td>通过创建更多或更少的分区来改变此DStream中的并行级别。</td>
+</tr>
+<tr>
+<td>union(<em>otherStream</em>)</td>
+<td>返回一个新的DStream，其中包含源DStream和<em>otherDStream</em>中的元素的并集。</td>
+</tr>
+<tr>
+<td>count()</td>
+<td>通过计算源DStream的每个RDD中的元素数量，返回一个单元素RDD的新DStream。</td>
+</tr>
+<tr>
+<td>reduce(<em>func</em>)</td>
+<td>通过使用函数<em>func</em>(接受两个参数并返回一个参数)聚合源DStream的每个RDD中的元素，返回一个由单元素RDD组成的新DStream。函数应该是结合律和交换律，这样才能并行计算。</td>
+</tr>
+<tr>
+<td>countByValue()</td>
+<td>当对类型为K的元素的DStream调用时，返回一个由(K, Long)对组成的新DStream，其中每个键的值是它在源DStream的每个RDD中的频率。</td>
+</tr>
+<tr>
+<td>reduceByKey(<em>func</em>, [<em>numTasks</em>])</td>
+<td>当在(K, V)对DStream上调用时，返回一个新的(K, V)对DStream，其中每个键的值使用给定的reduce函数聚合。**注意:**默认情况下，这使用Spark的默认并行任务数(本地模式为2，集群模式下由配置属性’ Spark .default.parallelism ‘决定)来进行分组。你可以通过一个可选的<code>numTasks</code>参数来设置不同数量的任务。</td>
+</tr>
+<tr>
+<td>join(<em>otherStream</em>, [<em>numTasks</em>])</td>
+<td>当调用两个(K, V)和(K, W)对的DStream时，返回一个新的(K， (V, W))对的DStream，其中包含每个键的所有元素对。</td>
+</tr>
+<tr>
+<td>cogroup(<em>otherStream</em>, [<em>numTasks</em>])</td>
+<td>当调用(K, V)和(K, W)对的DStream时，返回一个新的(K, Seq[V]， Seq[W])元组的DStream。</td>
+</tr>
+<tr>
+<td>transform(<em>func</em>)</td>
+<td>通过对源DStream的每个RDD应用RDD-to-RDD函数，返回一个新的DStream。这可以用于在DStream上执行任意的RDD操作。</td>
+</tr>
+<tr>
+<td>updateStateByKey(<em>func</em>)</td>
+<td>返回一个带新的“状态”的DStream，其中每个键的状态通过在键的前一个状态和键的新值上应用给定函数来更新。这可用于维护每个键的任意状态数据。</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>这里面有个特别的算子[updateStateByKey]</p>
+<p>其他算子都仅计算当前微批的数据，这类算子被称为<code>无状态算子</code></p>
+<p>updateStateByKey在计算是会保留key的状态，下次计算会根据前一次的key继续转换，这被成为<code>有状态算子</code></p>
+</blockquote>
+<h2 id="窗口操作"><a href="#窗口操作" class="headerlink" title="窗口操作"></a>窗口操作</h2><p>Spark仅支持滑动窗口(滚动是特殊的滑动)</p>
+<p><img data-src="/../image/Spark%E6%B5%81%E8%AE%A1%E7%AE%97/%E7%AA%97%E5%8F%A3%E6%93%8D%E4%BD%9C.png" alt="窗口操作"></p>
+<p>Spark的开窗与Flink不一样，Spark开窗前后的数据类型不变，只是将DStream中的各个窗口的RDD集合成一个新的RDD，Spark的开窗也是直接将开窗与转换的动作合并到一个算子</p>
+<table>
+<thead>
+<tr>
+<th>转换</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>window(<em>windowLength</em>, <em>slideInterval</em>)</td>
+<td>返回一个基于源DStream的窗口批次计算后得到新的DStream。(单纯的RDD合并)</td>
+</tr>
+<tr>
+<td>countByWindow(<em>windowLength</em>,<em>slideInterval</em>)</td>
+<td>返回基于滑动窗口的DStream中的元素的数量。</td>
+</tr>
+<tr>
+<td>reduceByWindow(<em>func</em>, <em>windowLength</em>,<em>slideInterval</em>)</td>
+<td>基于滑动窗口对源DStream中的元素进行聚合操作，得到一个新的DStream。</td>
+</tr>
+<tr>
+<td>reduceByKeyAndWindow(<em>func</em>,<em>windowLength</em>,<em>slideInterval</em>, [<em>numTasks</em>])</td>
+<td>基于滑动窗口对（K，V）键值对类型的DStream中的值按K使用聚合函数func进行聚合操作，得到一个新的DStream。</td>
+</tr>
+<tr>
+<td>reduceByKeyAndWindow(<em>func</em>,<em>invFunc</em>,<em>windowLength</em>, <em>slideInterval</em>, [<em>numTasks</em>])</td>
+<td>一个更高效的reduceByKeyAndWindow()的实现版本，先对滑动窗口中新的时间间隔内数据增量聚合并移去最早的与新增数据量的时间间隔内的数据统计量。例如，计算t+4秒这个时刻过去5秒窗口的WordCount，那么我们可以将t+3时刻过去5秒的统计量加上[t+3，t+4]的统计量，在减去[t-2，t-1]的统计量，这种方法可以复用中间三秒的统计量，提高统计的效率。</td>
+</tr>
+<tr>
+<td>countByValueAndWindow(<em>windowLength</em>,<em>slideInterval</em>, [<em>numTasks</em>])</td>
+<td>基于滑动窗口计算源DStream中每个RDD内每个元素出现的频次并返回DStream[(K,Long)]，其中K是RDD中元素的类型，Long是元素频次。与countByValue一样，reduce任务的数量可以通过一个可选参数进行配置。</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>由于Spark Streaming天生微批的特性，所以，定义窗口长度(windowLength)与窗口间隔(slideInterval)时，<code>必须是微批时间间隔的倍数</code></p>
+<p>一般我习惯将微批间隔调偏小。可以方便我开窗，也能提升计算的时效性，不过这也不是百利无害，过度缩小微批间隔会导致应用程序的吞吐量下降</p>
+</blockquote>
+<p>实操一下，用窗口每隔5秒统计最经15秒的数据，对数据进行词频统计</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.log4j.<span class="type">Level</span>._</span><br><span class="line"><span class="keyword">import</span> org.apache.log4j.<span class="type">Logger</span></span><br><span class="line"><span class="keyword">import</span> org.apache.spark.<span class="type">SparkConf</span></span><br><span class="line"><span class="keyword">import</span> org.apache.spark.streaming.&#123;<span class="type">Seconds</span>, <span class="type">StreamingContext</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">Test01</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args: <span class="type">Array</span>[<span class="type">String</span>]): <span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="type">Logger</span>.getLogger(<span class="string">&quot;org&quot;</span>).setLevel(<span class="type">ERROR</span>)</span><br><span class="line">    <span class="comment">//创建配置对象</span></span><br><span class="line">    <span class="keyword">val</span> conf = <span class="keyword">new</span> <span class="type">SparkConf</span>()</span><br><span class="line">    conf.setMaster(<span class="string">&quot;local[*]&quot;</span>)</span><br><span class="line">    conf.setAppName(<span class="string">&quot;Test01&quot;</span>)</span><br><span class="line">    <span class="comment">//创建Spark Streaming Context</span></span><br><span class="line">    <span class="keyword">val</span> ssc = <span class="keyword">new</span> <span class="type">StreamingContext</span>(conf,<span class="type">Seconds</span>(<span class="number">5</span>))    <span class="comment">//取最大公因数</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">val</span> stream = ssc.socketTextStream(<span class="string">&quot;192.168.159.136&quot;</span>,<span class="number">9999</span>)</span><br><span class="line"></span><br><span class="line">    stream</span><br><span class="line">      .flatMap(_.split(<span class="string">&quot; &quot;</span>))</span><br><span class="line">      .map((_,<span class="number">1</span>))</span><br><span class="line">      .groupByKeyAndWindow(<span class="type">Seconds</span>(<span class="number">15</span>),<span class="type">Seconds</span>(<span class="number">5</span>))    <span class="comment">//又ByKey 又ByWindow</span></span><br><span class="line">      .map(d =&gt; (d._1,d._2.sum))        <span class="comment">//(aa,ArrayBuffer(1, 1, 1, 1))  =&gt; (aa,4)</span></span><br><span class="line">      .print()</span><br><span class="line"></span><br><span class="line">    ssc.start()</span><br><span class="line">    ssc.awaitTermination()</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">-------------------------------------------</span><br><span class="line"><span class="type">Time</span>: <span class="number">1666596635000</span> ms</span><br><span class="line">-------------------------------------------</span><br><span class="line">(cc,<span class="number">1</span>)</span><br><span class="line">(bb,<span class="number">1</span>)</span><br><span class="line">(aa,<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line">-------------------------------------------</span><br><span class="line"><span class="type">Time</span>: <span class="number">1666596640000</span> ms</span><br><span class="line">-------------------------------------------</span><br><span class="line">(cc,<span class="number">1</span>)</span><br><span class="line">(bb,<span class="number">1</span>)</span><br><span class="line">(aa,<span class="number">3</span>)</span><br><span class="line">(dd,<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">-------------------------------------------</span><br><span class="line"><span class="type">Time</span>: <span class="number">1666596645000</span> ms</span><br><span class="line">-------------------------------------------</span><br><span class="line">(ff,<span class="number">1</span>)</span><br><span class="line">(cc,<span class="number">1</span>)</span><br><span class="line">(ee,<span class="number">1</span>)</span><br><span class="line">(bb,<span class="number">1</span>)</span><br><span class="line">(aa,<span class="number">6</span>)</span><br><span class="line">(gg,<span class="number">1</span>)</span><br><span class="line">(dd,<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">-------------------------------------------</span><br><span class="line"><span class="type">Time</span>: <span class="number">1666596650000</span> ms</span><br><span class="line">-------------------------------------------</span><br><span class="line">(ff,<span class="number">1</span>)</span><br><span class="line">(ee,<span class="number">1</span>)</span><br><span class="line">(aa,<span class="number">4</span>)</span><br><span class="line">(gg,<span class="number">1</span>)</span><br><span class="line">(dd,<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">-------------------------------------------</span><br><span class="line"><span class="type">Time</span>: <span class="number">1666596655000</span> ms</span><br><span class="line">-------------------------------------------</span><br><span class="line">(ff,<span class="number">1</span>)</span><br><span class="line">(ee,<span class="number">1</span>)</span><br><span class="line">(aa,<span class="number">3</span>)</span><br><span class="line">(gg,<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+
+<p>话说，有没有哪个小天才求出我这几秒的输入内容</p>
+<h3 id="事件时间窗口"><a href="#事件时间窗口" class="headerlink" title="事件时间窗口"></a>事件时间窗口</h3><p>上面演示的是基于处理时间段窗口</p>
+<p>在处理事件时间前，先快速了解些概念</p>
+<hr>
+
+<p>三大时间语义</p>
+<p><img data-src="/../image/Spark%E6%B5%81%E8%AE%A1%E7%AE%97/%E6%97%B6%E9%97%B4%E8%AF%AD%E4%B9%89.png" alt="时间语义"></p>
+<p>例如你在打网络游戏，当你按下技能键时，这个时间就是事件时间，而当这个指令传输到服务器时就是进入时间，服务器处理这个命令的时间就是处理时间，在代码中，往往更加关系事件时间。</p>
+<hr>
+
+<p><a target="_blank" rel="noopener" href="https://spark.apache.org/docs/2.4.5/structured-streaming-programming-guide.html#window-operations-on-event-time">官方文档</a></p>
+<p>使用起来也简单，官方解释说因为这种窗口和分组相似，所以我们可以使用<em>Spark SQL API</em>的*groupBy()<em>结合</em>window()*实现</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> spark.implicits._</span><br><span class="line"></span><br><span class="line"><span class="keyword">val</span> words = ... <span class="comment">// 流数据的Schema &#123; timestamp: Timestamp, word: String &#125;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 将数据按窗口和单词分组，并计算每组的计数</span></span><br><span class="line"><span class="keyword">val</span> windowedCounts = words.groupBy(</span><br><span class="line">  window($<span class="string">&quot;timestamp&quot;</span>, <span class="string">&quot;10 minutes&quot;</span>, <span class="string">&quot;5 minutes&quot;</span>),</span><br><span class="line">  $<span class="string">&quot;word&quot;</span></span><br><span class="line">).count()</span><br></pre></td></tr></table></figure>
+
+<h2 id="输出操作"><a href="#输出操作" class="headerlink" title="输出操作"></a>输出操作</h2><p>类似RDD，DStream也可输出到外部系统</p>
+<table>
+<thead>
+<tr>
+<th>输出选项</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>print()</td>
+<td>在运行流应用程序的驱动节点上打印DStream中每批数据的前十个元素。官方认为这对于开发和调试非常有用。<br><em>Python API中不可用</em></td>
+</tr>
+<tr>
+<td>saveAsTextFiles(<em>prefix</em>, [<em>suffix</em>])</td>
+<td>将此DStream的内容保存为文本文件</td>
+</tr>
+<tr>
+<td>saveAsObjectFiles(<em>prefix</em>, [<em>suffix</em>])</td>
+<td>将这个DStream的内容保存为序列化Java对象的<code>SequenceFiles</code>。<br><em>Python API中不可用</em></td>
+</tr>
+<tr>
+<td>saveAsHadoopFiles(<em>prefix</em>, [<em>suffix</em>])</td>
+<td>将这个DStream的内容保存为Hadoop文件。<br><em>Python API中不可用</em></td>
+</tr>
+<tr>
+<td>foreachRDD(<em>func</em>)</td>
+<td>通用的输出操作，将<em>func</em>用于于DStream中所有的RDD。该功能应将每个RDD中的数据推入外部系统，例如将RDD保存到文件中，或通过网络将其写入数据库。注意，函数<em>func</em>是在运行流应用程序的驱动进程中执行的</td>
+</tr>
+</tbody></table>
+<p>前面好几个例子中用到的print()就是一个简单的输出操作</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ssc</span><br><span class="line">	.socketTextStream(<span class="string">&quot;192.168.159.136&quot;</span>,<span class="number">9999</span>)</span><br><span class="line">	.print()</span><br></pre></td></tr></table></figure>
+
+
+
+<p>官方认为foreachRDD(<em>func</em>)是一个非常强大的算子，如何正确且有效的使用它非常重要</p>
+<p>原句，不是我瞎说</p>
+<p><code>dstream.foreachRDD</code> is a powerful primitive that allows data to be sent out to external systems. However, it is important to understand how to use this primitive correctly and efficiently</p>
+<p>所以让我们看一遍官方的案例</p>
+<p>通常，向外部系统写入数据通常需要创建一个连接对象(例如，到远程服务器的TCP连接)，并使用它向远程系统发送数据。为此，开发人员可能会无意中尝试在Spark driver中创建一个连接对象，然后尝试在Spark worker中使用它来保存rdd中的记录。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">dstream.foreachRDD &#123; rdd =&gt;</span><br><span class="line">  <span class="keyword">val</span> connection = createNewConnection()  <span class="comment">// driver段创建连接对象</span></span><br><span class="line">  rdd.foreach &#123; record =&gt;</span><br><span class="line">    connection.send(record) <span class="comment">// worker端使用连接对象保存数据</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这是不正确的，因为这需要连接对象被序列化，并从driver端发送到worker端。这样的连接对象很少可以跨机器转移。所以可能会出现序列化错误(连接对象不可序列化)、初始化错误(连接对象需要在工作者处初始化)等。正确的解决方案是在工作者处创建连接对象。</p>
+<p>然而，这可能会导致另一个常见的错误——为每条记录创建一个新连接，如下</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">dstream.foreachRDD &#123; rdd =&gt;</span><br><span class="line">  rdd.foreach &#123; record =&gt;</span><br><span class="line">    <span class="keyword">val</span> connection = createNewConnection()   <span class="comment">// driver段创建连接对象</span></span><br><span class="line">    connection.send(record)     <span class="comment">// worker端使用连接对象保存数据</span></span><br><span class="line">    connection.close()</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>创建连接对象需要花费时间和资源。因此，为每个记录创建和销毁一个连接对象可能会产生不必要的高开销，并会显著降低系统的总体吞吐量。更好的解决方案是使用<em>rdd.foreachPartition</em>创建一个连接对象，并使用该连接发送RDD分区中的所有记录。如下：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">dstream.foreachRDD &#123; rdd =&gt;</span><br><span class="line">  rdd.foreachPartition &#123; partitionOfRecords =&gt;</span><br><span class="line">    <span class="keyword">val</span> connection = createNewConnection()</span><br><span class="line">    partitionOfRecords.foreach(record =&gt; connection.send(record))</span><br><span class="line">    connection.close()</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这将在许多记录上分摊创建连接的开销。</p>
+<p>最后，可以通过跨多个rdd&#x2F;批重用连接对象来进一步优化。可以维护一个静态的连接对象池，当多个批的rdd被推到外部系统时，可以重用该连接对象池，从而进一步减少开销。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">dstream.foreachRDD &#123; rdd =&gt;</span><br><span class="line">  rdd.foreachPartition &#123; partitionOfRecords =&gt;</span><br><span class="line">    <span class="comment">// ConnectionPool是一个静态的、惰性初始化的连接池</span></span><br><span class="line">    <span class="keyword">val</span> connection = <span class="type">ConnectionPool</span>.getConnection()</span><br><span class="line">    partitionOfRecords.foreach(record =&gt; connection.send(record))</span><br><span class="line">    <span class="type">ConnectionPool</span>.returnConnection(connection)  <span class="comment">// 返回到池中以便将来重用</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注意，池中的连接应该按需惰性创建，如果一段时间不使用，则会超时。这实现了将数据最有效地发送到外部系统。</p>
+<h1 id="DStream-持久化"><a href="#DStream-持久化" class="headerlink" title="DStream 持久化"></a>DStream 持久化</h1><p>DStream与RDD一样，也允许开发人员将其数据(里面的所有RDD)持久化</p>
+<p>方法也很简单，只需要使用persist()方法就行</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> stream = ssc.socketTextStream(<span class="string">&quot;master&quot;</span>,<span class="number">9999</span>)</span><br><span class="line">  .persist(</span><br><span class="line">    <span class="type">StorageLevel</span>.<span class="type">MEMORY_ONLY</span>    <span class="comment">//我们可以在此定义持久化的存储级别，默认将数据持久化到内存</span></span><br><span class="line">  )</span><br></pre></td></tr></table></figure>
+
+<p>在涉及<code>开窗</code>以及<code>有状态</code>操作后，Spark Streaming会<code>自动执行</code>persist</p>
+<h1 id="DStream-检测点"><a href="#DStream-检测点" class="headerlink" title="DStream 检测点"></a>DStream 检测点</h1><p>Spark Streaming应用程序通常7*24小时持续运行，一下非应用程序开发逻辑导致的错误(例如系统故障，JVM故障)不应该影响应用程序的运行</p>
+<p>这时检查点机制就很重要，就先游戏中的检查点，它会记录当前的状态，保存到容错系统中，以便随时恢复某一时间段状态</p>
+<ul>
+<li>元数据检查点</li>
+</ul>
+<p>​	将定义流计算的信息保存到HDFS等容错存储中。这用于从运行流应用程序驱动程序的节点的故障中恢复(稍后将详细讨论)。元数据包括:</p>
+<p>​	- 应用程序配置  ——&gt;    用于创建流应用程序的配置。</p>
+<p>​	- DStream操作  ——&gt;   定义流应用程序的DStream操作集。</p>
+<p>​	- 未完成批次    ——&gt;   在排队中但尚未完成的作业批次。</p>
+<ul>
+<li>数据检查点</li>
+</ul>
+<p>将生成的RDD保存到可靠的存储中。</p>
+<p>这在一些跨多个批组合数据的有状态转换中是必要的。在这样的转换中，生成的RDD依赖于前一批的RDD，这导致依赖链的长度随着时间不断增加。为了避免恢复时间的无限增加，有状态转换的中间RDD会定期设置检查点到可靠的存储(如HDFS)，以切断依赖链。</p>
+<hr>
+
+<p>在以下场景必须要启用检查点:</p>
+<ul>
+<li>在计算过程中有涉及有状态转换：<ul>
+<li>如果在应用程序中使用了<em>updateStateByKey</em>或<em>reduceByKeyAndWindow</em>(有状态算子)，那么必须提供检查点目录以允许定期的RDD检查点。</li>
+<li>从运行应用程序的Driver故障中恢复，使用元数据检查点来海恢复进度信息。</li>
+</ul>
+</li>
+</ul>
+<p>若你的应用程序未涉及有状态计算，可以允许一些被接受但未被处理的数据丢失，那可以不用配置检查点</p>
+<h2 id="如何配置检查点"><a href="#如何配置检查点" class="headerlink" title="如何配置检查点"></a>如何配置检查点</h2><p>我们可以通过*streamingContext.checkpoint(一个路径:String)*启用检查点，通常来说，检查点放在一个容错、可靠的文件系统(如HDFS)中</p>
+<p>用官方案例改改</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.log4j.<span class="type">Level</span>._</span><br><span class="line"><span class="keyword">import</span> org.apache.log4j.<span class="type">Logger</span></span><br><span class="line"><span class="keyword">import</span> org.apache.spark.<span class="type">SparkConf</span></span><br><span class="line"><span class="keyword">import</span> org.apache.spark.streaming.&#123;<span class="type">Seconds</span>, <span class="type">StreamingContext</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">Test01</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args: <span class="type">Array</span>[<span class="type">String</span>]): <span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="type">Logger</span>.getLogger(<span class="string">&quot;org&quot;</span>).setLevel(<span class="type">ERROR</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">//拿到SparkStreamingContext</span></span><br><span class="line">    <span class="keyword">val</span> ssc = <span class="type">StreamingContext</span></span><br><span class="line">      .getOrCreate(</span><br><span class="line">        <span class="keyword">this</span>.checkpointPath,</span><br><span class="line">        createContext _         <span class="comment">//比较坑，只能吃() =&gt; StreamingContext</span></span><br><span class="line">      )           <span class="comment">//从创建函数获取</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">val</span> stream = ssc.socketTextStream(<span class="string">&quot;master&quot;</span>,<span class="number">9999</span>)</span><br><span class="line">    stream</span><br><span class="line">      .flatMap(_.split(<span class="string">&quot; &quot;</span>))</span><br><span class="line">      .map((_,<span class="number">1</span>))</span><br><span class="line">      .reduceByKey(_+_)</span><br><span class="line">      .print()</span><br><span class="line"></span><br><span class="line">    ssc.start()</span><br><span class="line">    ssc.awaitTermination()</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//检查点路径</span></span><br><span class="line">  <span class="keyword">val</span> checkpointPath = <span class="string">&quot;hdfs://master:9999/sparkCheckpoint&quot;</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">//定义个函数，用于从检查点获取SparkStreamingContext</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">createContext</span></span>(): <span class="type">StreamingContext</span> = &#123;</span><br><span class="line">    <span class="comment">//创建配置对象</span></span><br><span class="line">    <span class="keyword">val</span> conf = <span class="keyword">new</span> <span class="type">SparkConf</span>()</span><br><span class="line">    conf.setMaster(<span class="string">&quot;local[*]&quot;</span>)</span><br><span class="line">    conf.setAppName(<span class="string">&quot;Test01&quot;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">//创建Spark Streaming Context</span></span><br><span class="line">    <span class="keyword">val</span> ssc = <span class="keyword">new</span> <span class="type">StreamingContext</span>(conf,<span class="type">Seconds</span>(<span class="number">5</span>))</span><br><span class="line"></span><br><span class="line">    <span class="comment">//通过流上下文设置检查点，将其储存在HDFS</span></span><br><span class="line">    ssc.checkpoint(<span class="keyword">this</span>.checkpointPath)</span><br><span class="line"></span><br><span class="line">    ssc</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/../image/wechatpay.png" alt="CanYue 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/../image/alipay.png" alt="CanYue 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>CanYue
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.canyue.top/article/Spark%E6%B5%81%E8%AE%A1%E7%AE%97/" title="Spark流计算">https://blog.canyue.top/article/Spark流计算/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh_CN" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/Spark/" rel="tag"># Spark</a>
+              <a href="/tags/Spark-Streaming/" rel="tag"># Spark Streaming</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/article/Flink%E6%95%B0%E6%8D%AE%E5%88%86%E6%B5%81%E4%B8%8E%E5%90%88%E6%B5%81/" rel="prev" title="Flink数据分流与合流">
+                  <i class="fa fa-angle-left"></i> Flink数据分流与合流
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/article/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9C%A8%E5%BC%80%E6%9C%BA%E6%97%B6%E5%8F%91%E7%94%9F%E4%BA%86%E4%BB%80%E4%B9%88/" rel="next" title="计算机在开机时发生了什么">
+                  计算机在开机时发生了什么 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2023 – 
+    <span itemprop="copyrightYear">2024</span>
+    <span class="with-love">
+      <i class="fa fa-code"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">CanYue</span>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdn.staticfile.net/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdn.staticfile.net/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdn.staticfile.net/fancyapps-ui/5.0.33/fancybox/fancybox.umd.js" integrity="sha256-+2+qOqR8CKoHh/AsVR9k2qaDBKWjYNC2nozhYmv5j9k=" crossorigin="anonymous"></script>
+  <script src="https://cdn.staticfile.net/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+  <script src="https://cdn.staticfile.net/pangu/4.0.7/pangu.min.js" integrity="sha256-j+yj56cdEY2CwkVtGyz18fNybFGpMGJ8JxG3GSyO2+I=" crossorigin="anonymous"></script>
+<script src="https://cdn.staticfile.net/hexo-theme-next/8.19.2/comments.min.js"></script><script src="https://cdn.staticfile.net/hexo-theme-next/8.19.2/utils.min.js"></script><script src="https://cdn.staticfile.net/hexo-theme-next/8.19.2/motion.min.js"></script><script src="https://cdn.staticfile.net/hexo-theme-next/8.19.2/next-boot.min.js"></script><script src="https://cdn.staticfile.net/hexo-theme-next/8.19.2/pjax.min.js"></script>
+
+  <script src="https://cdn.staticfile.net/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="https://cdn.staticfile.net/hexo-theme-next/8.19.2/third-party/search/local-search.min.js"></script>
+
+
+
+
+  <script src="https://cdn.staticfile.net/hexo-theme-next/8.19.2/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdn.staticfile.net/hexo-theme-next/8.19.2/third-party/pace.min.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdn.staticfile.net/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="https://cdn.staticfile.net/hexo-theme-next/8.19.2/third-party/math/mathjax.min.js"></script>
+
+
+
+</body>
+</html>

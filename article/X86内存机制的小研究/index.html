@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+<link rel="preconnect" href="https://cdn.staticfile.net" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdn.staticfile.net/font-awesome/6.5.1/css/all.min.css" integrity="sha256-wiz7ZSCn/btzhjKDQBms9Hx4sSeUYsDrTLg7roPstac=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.staticfile.net/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.staticfile.net/fancyapps-ui/5.0.33/fancybox/fancybox.css" integrity="sha256-gkQVf8UKZgQ0HyuxL/VnacadJ+D2Kox2TCEBuNQg5+w=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.staticfile.net/pace/1.2.4/themes/silver/pace-theme-flash.css">
+  <script src="https://cdn.staticfile.net/pace/1.2.4/pace.min.js" integrity="sha256-gqd7YTjg/BtfqWSwsJOvndl0Bxc8gFImLEkXQT8+qj0=" crossorigin="anonymous"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.canyue.top","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.19.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":17,"offset":12},"copycode":{"enable":true,"style":"default"},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInLeft","post_block":"fadeInUp","post_header":"fadeInTop","post_body":"fadeIn","coll_header":null,"sidebar":"fadeInUp","All available transition variants":"https://theme-next.js.org/animate/"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":true,"preload":false}}</script><script src="https://cdn.staticfile.net/hexo-theme-next/8.19.2/config.min.js"></script>
+
+    <meta name="description" content="以下内容涉及知识点较深，可能有误，望指出。参考时建议再次查证内容的准确性。 文章很长、这已经是我拆开来写的了，建议收藏慢慢看 本篇偏向于以CPU的视角  内存(Internal memory、也被习惯称为Memory)，是一个与外存(External memory)相对的概念，本质上是CPU能够直接寻址的存储空间，存储空间由存储器(Memory)提供，可为RAM(Random access me">
+<meta property="og:type" content="article">
+<meta property="og:title" content="X86内存机制的小研究">
+<meta property="og:url" content="https://blog.canyue.top/article/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/index.html">
+<meta property="og:site_name" content="CanYue&#39;s house">
+<meta property="og:description" content="以下内容涉及知识点较深，可能有误，望指出。参考时建议再次查证内容的准确性。 文章很长、这已经是我拆开来写的了，建议收藏慢慢看 本篇偏向于以CPU的视角  内存(Internal memory、也被习惯称为Memory)，是一个与外存(External memory)相对的概念，本质上是CPU能够直接寻址的存储空间，存储空间由存储器(Memory)提供，可为RAM(Random access me">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/8086%E5%AE%9E%E6%8B%8D.jpg">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/8086%E5%BC%95%E8%84%9A%E5%AE%9A%E4%B9%89.png">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/286CPU%E5%9C%A8%E4%BF%9D%E6%8A%A4%E6%A8%A1%E5%BC%8F%E4%B8%8B%E7%9A%84%E5%AF%BB%E5%9D%80.png">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/386CPU%E5%9C%A8%E4%BF%9D%E6%8A%A4%E6%A8%A1%E5%BC%8F%E4%B8%8B4KiB%E7%9A%84%E5%88%86%E9%A1%B5%E5%AF%BB%E5%9D%80.jpg">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E9%80%BB%E8%BE%91%E5%9C%B0%E5%9D%80_%E7%BA%BF%E6%80%A7%E5%9C%B0%E5%9D%80_%E7%89%A9%E7%90%86%E5%9C%B0%E5%9D%80.png">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/X86%E4%BF%9D%E6%8A%A4%E6%A8%A1%E5%BC%8F%E4%B8%8B%E5%88%86%E6%AE%B5%E6%9C%BA%E5%88%B6%E6%B5%81%E7%A8%8B.jpg">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/80X86%E5%88%86%E6%AE%B5%E6%9C%BA%E5%88%B6%E6%B5%81%E7%A8%8B.jpg">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E9%80%BB%E8%BE%91%E5%9C%B0%E5%9D%80%E7%BB%93%E6%9E%84.png">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E6%AE%B5%E6%A0%87%E8%AF%86%E7%AC%A6%E7%BB%93%E6%9E%84.png">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E6%AE%B5%E6%8F%8F%E8%BF%B0%E7%AC%A6.png">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/X86%E4%BF%9D%E6%8A%A4%E6%A8%A1%E5%BC%8F%E4%B8%8B%E7%9A%84%E5%88%86%E9%A1%B5%E6%9C%BA%E5%88%B6.jpg">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E9%A1%B5%E7%9B%AE%E5%BD%95%E9%A1%B9%E7%BB%93%E6%9E%84.png">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E9%A1%B5%E8%A1%A8%E9%A1%B9%E7%BB%93%E6%9E%84.png">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E5%85%B8%E5%9E%8B%E5%86%85%E5%AD%98%E7%89%A9%E7%90%86%E7%A9%BA%E9%97%B4.jpg">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E7%94%B14%E4%BD%8D%E8%A7%A6%E5%8F%91%E5%99%A8%E6%9E%84%E6%88%90%E7%9A%84%E6%95%B0%E7%A0%81%E5%AF%84%E5%AD%98%E5%99%A8.png">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E7%94%B14%E4%BD%8D%E8%A7%A6%E5%8F%91%E5%99%A8%E6%9E%84%E6%88%90%E7%9A%84%E4%BD%8D%E7%A7%BB%E5%AF%84%E5%AD%98%E5%99%A8.png">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/8086%E5%AF%84%E5%AD%98%E5%99%A8.jpg">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/i386%E5%AF%84%E5%AD%98%E5%99%A8.png">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/32%E4%BD%8D%E6%A0%87%E5%BF%97%E4%BD%8D%E5%9B%BE.jpg">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/X86%E6%8E%A7%E5%88%B6%E5%AF%84%E5%AD%98%E5%99%A8%E7%BB%93%E6%9E%84.jpg">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E7%9B%B8%E5%AF%B9%E5%AF%BB%E5%9D%80%E7%A4%BA%E4%BE%8B%E5%9B%BE.jpg">
+<meta property="og:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E9%97%B4%E6%8E%A5%E5%AF%BB%E5%9D%80%E6%A6%82%E8%BF%B0%E5%9B%BE.png">
+<meta property="article:published_time" content="2023-07-11T01:57:00.000Z">
+<meta property="article:modified_time" content="2024-03-16T07:34:01.500Z">
+<meta property="article:author" content="CanYue">
+<meta property="article:tag" content="计算机组成原理">
+<meta property="article:tag" content="操作系统">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.canyue.top/image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/8086%E5%AE%9E%E6%8B%8D.jpg">
+
+
+<link rel="canonical" href="https://blog.canyue.top/article/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.canyue.top/article/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/","path":"article/X86内存机制的小研究/","title":"X86内存机制的小研究"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>X86内存机制的小研究 | CanYue's house</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">CanYue's house</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">welcome|欢迎来访</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-博客"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>博客</a></li><li class="menu-item menu-item-门面"><a href="/home" rel="section"><i class="fa fa-address-card fa-fw"></i>门面</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+	  
+
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BE%9D%E8%B5%96"><span class="nav-number">1.</span> <span class="nav-text">依赖</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#80X86%E5%A4%84%E7%90%86%E5%99%A8%EF%BC%9F"><span class="nav-number">1.1.</span> <span class="nav-text">80X86处理器？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E6%AE%B5%E7%AE%A1%E7%90%86%E7%9A%84%E8%AF%9E%E7%94%9F"><span class="nav-number">1.2.</span> <span class="nav-text">分段管理的诞生</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%90%8E%E4%BA%BA"><span class="nav-number">1.2.1.</span> <span class="nav-text">后人</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E6%A8%A1%E5%BC%8F"><span class="nav-number">1.3.</span> <span class="nav-text">实模式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BF%9D%E6%8A%A4%E6%A8%A1%E5%BC%8F"><span class="nav-number">1.4.</span> <span class="nav-text">保护模式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%99%9A%E6%8B%9F8086%E6%A8%A1%E5%BC%8F"><span class="nav-number">1.5.</span> <span class="nav-text">虚拟8086模式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%95%BF%E6%A8%A1%E5%BC%8F"><span class="nav-number">1.6.</span> <span class="nav-text">长模式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%86%E8%A7%A3%E4%B8%80%E7%82%B9%E7%82%B9%E6%B1%87%E7%BC%96"><span class="nav-number">1.7.</span> <span class="nav-text">了解一点点汇编</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%93%8D%E4%BD%9C%E7%A0%81"><span class="nav-number">1.7.1.</span> <span class="nav-text">操作码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%93%8D%E4%BD%9C%E6%95%B0%E5%92%8C%E6%93%8D%E4%BD%9C%E6%95%B0%E5%9C%B0%E5%9D%80"><span class="nav-number">1.7.2.</span> <span class="nav-text">操作数和操作数地址</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%93%8D%E4%BD%9C%E7%BB%93%E6%9E%9C%E5%AD%98%E6%94%BE%E7%9A%84%E5%9C%B0%E5%9D%80"><span class="nav-number">1.7.3.</span> <span class="nav-text">操作结果存放的地址</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8B%E4%B8%80%E6%9D%A1%E6%8C%87%E4%BB%A4%E7%9A%84%E5%9C%B0%E5%9D%80"><span class="nav-number">1.7.4.</span> <span class="nav-text">下一条指令的地址</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%89%E6%95%88%E5%9C%B0%E5%9D%80"><span class="nav-number">1.7.5.</span> <span class="nav-text">有效地址</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AB%8B%E5%8D%B3%E6%95%B0"><span class="nav-number">1.7.6.</span> <span class="nav-text">立即数</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E6%96%B9%E5%BC%8F"><span class="nav-number">2.</span> <span class="nav-text">内存管理方式</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E6%AE%B5%E6%9C%BA%E5%88%B6"><span class="nav-number">2.1.</span> <span class="nav-text">分段机制</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B7%E4%BD%93%E8%BF%87%E7%A8%8B"><span class="nav-number">2.1.1.</span> <span class="nav-text">具体过程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A9%BA%E9%97%B4%E7%A2%8E%E7%89%87"><span class="nav-number">2.1.2.</span> <span class="nav-text">空间碎片</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E9%A1%B5%E6%9C%BA%E5%88%B6"><span class="nav-number">2.2.</span> <span class="nav-text">分页机制</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B7%E4%BD%93%E8%BF%87%E7%A8%8B-1"><span class="nav-number">2.2.1.</span> <span class="nav-text">具体过程</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%86%85%E5%AD%98%E5%9C%B0%E5%9D%80"><span class="nav-number">3.</span> <span class="nav-text">内存地址</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%BB%E8%BE%91%E5%9C%B0%E5%9D%80-logical-address"><span class="nav-number">3.1.</span> <span class="nav-text">逻辑地址(logical address)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%BB%E8%BE%91%E5%9C%B0%E5%9D%80%E7%9A%84%E7%BB%93%E6%9E%84"><span class="nav-number">3.1.1.</span> <span class="nav-text">-逻辑地址的结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%AE%B5%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-number">3.1.2.</span> <span class="nav-text">-段寄存器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%AE%B5%E9%80%89%E6%8B%A9%E7%AC%A6-%E4%BF%9D%E6%8A%A4%E6%A8%A1%E5%BC%8F%E7%89%B9%E6%9C%89"><span class="nav-number">3.1.3.</span> <span class="nav-text">-段选择符(保护模式特有)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#GDT%E5%92%8CLDT-%E4%BF%9D%E6%8A%A4%E6%A8%A1%E5%BC%8F%E7%89%B9%E6%9C%89"><span class="nav-number">3.1.4.</span> <span class="nav-text">-GDT和LDT(保护模式特有)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%AE%B5%E6%8F%8F%E8%BF%B0%E7%AC%A6-%E4%BF%9D%E6%8A%A4%E6%A8%A1%E5%BC%8F%E7%89%B9%E6%9C%89"><span class="nav-number">3.1.5.</span> <span class="nav-text">-段描述符(保护模式特有)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%AE%B5%E5%9F%BA%E5%80%BC%E5%92%8C%E6%AE%B5%E5%9F%BA%E5%9D%80"><span class="nav-number">3.1.6.</span> <span class="nav-text">-段基值和段基址</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%81%8F%E7%A7%BB%E9%87%8F"><span class="nav-number">3.1.7.</span> <span class="nav-text">-偏移量</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Linux%E4%B8%AD%E7%9A%84%E9%80%BB%E8%BE%91%E5%9C%B0%E5%9D%80"><span class="nav-number">3.1.8.</span> <span class="nav-text">-Linux中的逻辑地址</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BA%BF%E6%80%A7%E5%9C%B0%E5%9D%80-linear-address"><span class="nav-number">3.2.</span> <span class="nav-text">线性地址(linear address)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A1%B5%E6%A0%87%E5%BF%97%E4%BD%8D"><span class="nav-number">3.2.1.</span> <span class="nav-text">-页标志位</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A1%B5%E7%9B%AE%E5%BD%95%E5%9F%BA%E5%9C%B0%E5%9D%80%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-number">3.2.2.</span> <span class="nav-text">-页目录基地址寄存器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A1%B5%E7%9B%AE%E5%BD%95"><span class="nav-number">3.2.3.</span> <span class="nav-text">-页目录</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A1%B5%E7%9B%AE%E5%BD%95%E9%A1%B9"><span class="nav-number">3.2.4.</span> <span class="nav-text">-页目录项</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A1%B5%E7%9B%AE%E5%BD%95%E7%B4%A2%E5%BC%95"><span class="nav-number">3.2.5.</span> <span class="nav-text">-页目录索引</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A1%B5%E8%A1%A8"><span class="nav-number">3.2.6.</span> <span class="nav-text">-页表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A1%B5%E8%A1%A8%E9%A1%B9"><span class="nav-number">3.2.7.</span> <span class="nav-text">-页表项</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A1%B5%E8%A1%A8%E7%B4%A2%E5%BC%95"><span class="nav-number">3.2.8.</span> <span class="nav-text">-页表索引</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A1%B5%E6%A1%86%E5%8F%B7"><span class="nav-number">3.2.9.</span> <span class="nav-text">-页框号</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A1%B5%E5%9F%BA%E5%9D%80"><span class="nav-number">3.2.10.</span> <span class="nav-text">-页基址</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A1%B5%E5%86%85%E5%81%8F%E7%A7%BB%E9%87%8F"><span class="nav-number">3.2.11.</span> <span class="nav-text">-页内偏移量</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%89%A9%E7%90%86%E5%9C%B0%E5%9D%80-physical-address"><span class="nav-number">3.3.</span> <span class="nav-text">物理地址(physical address)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%89%A9%E7%90%86%E5%9C%B0%E5%9D%80%E7%A9%BA%E9%97%B4"><span class="nav-number">3.3.1.</span> <span class="nav-text">物理地址空间</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-number">4.</span> <span class="nav-text">寄存器</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%B0%E7%A0%81%E5%AF%84%E5%AD%98%E5%99%A8%E5%92%8C%E4%BD%8D%E7%A7%BB%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-number">4.1.</span> <span class="nav-text">数码寄存器和位移寄存器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8086%E5%A4%84%E7%90%86%E5%99%A8"><span class="nav-number">4.2.</span> <span class="nav-text">8086处理器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%9A%E7%94%A8%E6%95%B0%E6%8D%AE%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-number">4.2.1.</span> <span class="nav-text">通用数据寄存器</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BF%85%E8%A6%81%E6%97%B6%E6%8B%86%E5%88%86%E9%80%9A%E7%94%A8%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-number">4.2.1.1.</span> <span class="nav-text">必要时拆分通用寄存器</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%AE%B5%E5%AF%84%E5%AD%98%E5%99%A8-1"><span class="nav-number">4.2.2.</span> <span class="nav-text">段寄存器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8C%87%E9%92%88%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-number">4.2.3.</span> <span class="nav-text">指针寄存器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%98%E5%9D%80%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-number">4.2.4.</span> <span class="nav-text">变址寄存器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8E%A7%E5%88%B6%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-number">4.2.5.</span> <span class="nav-text">控制寄存器</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A0%87%E5%BF%97%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-number">4.2.5.1.</span> <span class="nav-text">标志寄存器</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#i386%E5%A4%84%E7%90%86%E5%99%A8"><span class="nav-number">4.3.</span> <span class="nav-text">i386处理器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%9A%E7%94%A8%E5%AF%84%E5%AD%98%E5%99%A8-32Bit"><span class="nav-number">4.3.1.</span> <span class="nav-text">通用寄存器(32Bit)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8C%87%E4%BB%A4%E6%8C%87%E9%92%88%E5%AF%84%E5%AD%98%E5%99%A8-32Bit"><span class="nav-number">4.3.2.</span> <span class="nav-text">指令指针寄存器(32Bit)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A0%87%E5%BF%97%E5%AF%84%E5%AD%98%E5%99%A8-32Bit"><span class="nav-number">4.3.3.</span> <span class="nav-text">标志寄存器(32Bit)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8E%A7%E5%88%B6%E5%AF%84%E5%AD%98%E5%99%A8-X86"><span class="nav-number">4.3.4.</span> <span class="nav-text">控制寄存器(X86)</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#CR0"><span class="nav-number">4.3.4.1.</span> <span class="nav-text">CR0</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#CR1"><span class="nav-number">4.3.4.2.</span> <span class="nav-text">CR1</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#CR2"><span class="nav-number">4.3.4.3.</span> <span class="nav-text">CR2</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#CR3"><span class="nav-number">4.3.4.4.</span> <span class="nav-text">CR3</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#CR4"><span class="nav-number">4.3.4.5.</span> <span class="nav-text">CR4</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%AF%BB%E5%9D%80%E6%A8%A1%E5%BC%8F"><span class="nav-number">5.</span> <span class="nav-text">寻址模式</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B4%E6%8E%A5%E5%AF%BB%E5%9D%80"><span class="nav-number">5.1.</span> <span class="nav-text">直接寻址</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%AF%B9%E5%AF%BB%E5%9D%80"><span class="nav-number">5.2.</span> <span class="nav-text">相对寻址</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9F%BA%E5%9D%80-%E5%81%8F%E7%A7%BB%E9%87%8F%E5%AF%BB%E5%9D%80"><span class="nav-number">5.3.</span> <span class="nav-text">基址+偏移量寻址</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%84%E5%AD%98%E5%99%A8%E5%AF%BB%E5%9D%80"><span class="nav-number">5.4.</span> <span class="nav-text">寄存器寻址</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%B4%E6%8E%A5%E5%AF%BB%E5%9D%80"><span class="nav-number">5.5.</span> <span class="nav-text">间接寻址</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AF%84%E5%AD%98%E5%99%A8%E9%97%B4%E6%8E%A5%E5%AF%BB%E5%9D%80"><span class="nav-number">5.5.1.</span> <span class="nav-text">- 寄存器间接寻址</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9A%90%E5%90%AB%E5%AF%BB%E5%9D%80"><span class="nav-number">5.6.</span> <span class="nav-text">隐含寻址</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="CanYue"
+      src="/../image/avatar.jpg">
+  <p class="site-author-name" itemprop="name">CanYue</p>
+  <div class="site-description" itemprop="description">梳理知识的同时,希望也能帮助到你</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/1024canyue" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;1024canyue" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://gitee.com/canyue2048" title="Gitee → https:&#x2F;&#x2F;gitee.com&#x2F;canyue2048" rel="noopener me" target="_blank"><i class="fa fa-code fa-fw"></i>Gitee</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:lintaisheng@outlook.com" title="E-Mail → mailto:lintaisheng@outlook.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+<div id="diyClock">
+  <canvas id="canvas" style="width:65%; margin-top: 9px;padding: 0;">
+</div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh_CN" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdn.staticfile.net/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+<script async>
+(function(){
+        var WINDOW_WIDTH = 950;
+  		var WINDOW_HEIGHT = 200;
+  		var RADIUS = 8; //球半径
+  		var NUMBER_GAP = 25; //数字之间的间隙
+  		// var u=0.65; //碰撞能量损耗系数
+  		var context; //Canvas绘制上下文
+  		// var balls = []; //存储彩色的小球
+  		// const colors = ["#33B5E5","#0099CC","#AA66CC","#9933CC","#99CC00","#669900","#FFBB33","#FF8800","#FF4444","#CC0000"]; //彩色小球的颜色
+  		var currentNums = []; //屏幕显示的8个字符
+  		var digit =
+                  [
+                      [
+                          [0,0,1,1,1,0,0],
+                          [0,1,1,0,1,1,0],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [0,1,1,0,1,1,0],
+                          [0,0,1,1,1,0,0]
+                      ],//0
+                      [
+                          [0,0,0,1,1,0,0],
+                          [0,1,1,1,1,0,0],
+                          [0,0,0,1,1,0,0],
+                          [0,0,0,1,1,0,0],
+                          [0,0,0,1,1,0,0],
+                          [0,0,0,1,1,0,0],
+                          [0,0,0,1,1,0,0],
+                          [0,0,0,1,1,0,0],
+                          [0,0,0,1,1,0,0],
+                          [1,1,1,1,1,1,1]
+                      ],//1
+                      [
+                          [0,1,1,1,1,1,0],
+                          [1,1,0,0,0,1,1],
+                          [0,0,0,0,0,1,1],
+                          [0,0,0,0,1,1,0],
+                          [0,0,0,1,1,0,0],
+                          [0,0,1,1,0,0,0],
+                          [0,1,1,0,0,0,0],
+                          [1,1,0,0,0,0,0],
+                          [1,1,0,0,0,1,1],
+                          [1,1,1,1,1,1,1]
+                      ],//2
+                      [
+                          [1,1,1,1,1,1,1],
+                          [0,0,0,0,0,1,1],
+                          [0,0,0,0,1,1,0],
+                          [0,0,0,1,1,0,0],
+                          [0,0,1,1,1,0,0],
+                          [0,0,0,0,1,1,0],
+                          [0,0,0,0,0,1,1],
+                          [0,0,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [0,1,1,1,1,1,0]
+                      ],//3
+                      [
+                          [0,0,0,0,1,1,0],
+                          [0,0,0,1,1,1,0],
+                          [0,0,1,1,1,1,0],
+                          [0,1,1,0,1,1,0],
+                          [1,1,0,0,1,1,0],
+                          [1,1,1,1,1,1,1],
+                          [0,0,0,0,1,1,0],
+                          [0,0,0,0,1,1,0],
+                          [0,0,0,0,1,1,0],
+                          [0,0,0,1,1,1,1]
+                      ],//4
+                      [
+                          [1,1,1,1,1,1,1],
+                          [1,1,0,0,0,0,0],
+                          [1,1,0,0,0,0,0],
+                          [1,1,1,1,1,1,0],
+                          [0,0,0,0,0,1,1],
+                          [0,0,0,0,0,1,1],
+                          [0,0,0,0,0,1,1],
+                          [0,0,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [0,1,1,1,1,1,0]
+                      ],//5
+                      [
+                          [0,0,0,0,1,1,0],
+                          [0,0,1,1,0,0,0],
+                          [0,1,1,0,0,0,0],
+                          [1,1,0,0,0,0,0],
+                          [1,1,0,1,1,1,0],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [0,1,1,1,1,1,0]
+                      ],//6
+                      [
+                          [1,1,1,1,1,1,1],
+                          [1,1,0,0,0,1,1],
+                          [0,0,0,0,1,1,0],
+                          [0,0,0,0,1,1,0],
+                          [0,0,0,1,1,0,0],
+                          [0,0,0,1,1,0,0],
+                          [0,0,1,1,0,0,0],
+                          [0,0,1,1,0,0,0],
+                          [0,0,1,1,0,0,0],
+                          [0,0,1,1,0,0,0]
+                      ],//7
+                      [
+                          [0,1,1,1,1,1,0],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [0,1,1,1,1,1,0],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [0,1,1,1,1,1,0]
+                      ],//8
+                      [
+                          [0,1,1,1,1,1,0],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [1,1,0,0,0,1,1],
+                          [0,1,1,1,0,1,1],
+                          [0,0,0,0,0,1,1],
+                          [0,0,0,0,0,1,1],
+                          [0,0,0,0,1,1,0],
+                          [0,0,0,1,1,0,0],
+                          [0,1,1,0,0,0,0]
+                      ],//9
+                      [
+                          [0,0,0,0],
+                          [0,0,0,0],
+                          [0,1,1,0],
+                          [0,1,1,0],
+                          [0,0,0,0],
+                          [0,0,0,0],
+                          [0,1,1,0],
+                          [0,1,1,0],
+                          [0,0,0,0],
+                          [0,0,0,0]
+                      ]//冒号
+                  ];
+
+  		function drawDatetime(cxt){
+  			var nums = [];
+
+  			context.fillStyle="#c4c4c4"
+  			var date = new Date();
+  			var offsetX = 60, offsetY = 30;
+  			var hours = date.getHours();
+  			var num1 = Math.floor(hours/10);
+  			var num2 = hours%10;
+  			nums.push({num: num1});
+  			nums.push({num: num2});
+  			nums.push({num: 10}); //冒号
+  			var minutes = date.getMinutes();
+  			var num1 = Math.floor(minutes/10);
+  			var num2 = minutes%10;
+  			nums.push({num: num1});
+  			nums.push({num: num2});
+  			nums.push({num: 10}); //冒号
+  			var seconds = date.getSeconds();
+  			var num1 = Math.floor(seconds/10);
+  			var num2 = seconds%10;
+  			nums.push({num: num1});
+  			nums.push({num: num2});
+
+  			for(var x = 0;x<nums.length;x++){
+  				nums[x].offsetX = offsetX;
+  				offsetX = drawSingleNumber(offsetX,offsetY, nums[x].num,cxt);
+  				//两个数字连一块，应该间隔一些距离
+  				if(x<nums.length-1){
+  					if((nums[x].num!=10) &&(nums[x+1].num!=10)){
+  						offsetX+=NUMBER_GAP;
+  					}
+  				}
+  			}
+
+            //彩球相关
+  			// if(currentNums.length ==0){
+  			// 	currentNums = nums;
+  			// }else{
+  			// 	//进行比较
+  			// 	for(var index = 0;index<currentNums.length;index++){
+  			// 		if(currentNums[index].num!=nums[index].num){
+  			// 			//不一样时，添加彩色小球
+  			// 			addBalls(nums[index]);
+  			// 			currentNums[index].num=nums[index].num;
+  			// 		}
+  			// 	}
+  			// }
+  			// renderBalls(cxt);
+  			// updateBalls();
+
+  			return date;
+  		}
+
+  		// function addBalls (item) {
+  		// 	var num = item.num;
+  		// 	var numMatrix = digit[num];
+  		// 	for(var y = 0;y<numMatrix.length;y++){
+  		// 		for(var x = 0;x<numMatrix[y].length;x++){
+  		// 			if(numMatrix[y][x]==1){
+  		// 				var ball={
+  		// 					offsetX:item.offsetX+RADIUS+RADIUS*2*x,
+  		// 					offsetY:30+RADIUS+RADIUS*2*y,
+  		// 					color:colors[Math.floor(Math.random()*colors.length)],
+  		// 					g:1.5+Math.random(),
+  		// 					vx:Math.pow(-1, Math.ceil(Math.random()*10))*4+Math.random(),
+  		// 					vy:-5
+  		// 				}
+  		// 				balls.push(ball);
+  		// 			}
+  		// 		}
+  		// 	}
+  		// }
+
+  		function renderBalls(cxt){
+  			for(var index = 0;index<balls.length;index++){
+  				cxt.beginPath();
+  				cxt.fillStyle=balls[index].color;
+  				cxt.arc(balls[index].offsetX, balls[index].offsetY, RADIUS, 0, 2*Math.PI);
+  				cxt.fill();
+  			}
+  		}
+
+  		function updateBalls () {
+  			var i =0;
+  			for(var index = 0;index<balls.length;index++){
+  				var ball = balls[index];
+  				ball.offsetX += ball.vx;
+  				ball.offsetY += ball.vy;
+  				ball.vy+=ball.g;
+  				if(ball.offsetY > (WINDOW_HEIGHT-RADIUS)){
+  					ball.offsetY= WINDOW_HEIGHT-RADIUS;
+  					ball.vy=-ball.vy*u;
+  				}
+  				if(ball.offsetX>RADIUS&&ball.offsetX<(WINDOW_WIDTH-RADIUS)){
+
+  					balls[i]=balls[index];
+  					i++;
+  				}
+  			}
+  			//去除出边界的球
+  			for(;i<balls.length;i++){
+  				balls.pop();
+  			}
+  		}
+  		function drawSingleNumber(offsetX, offsetY, num, cxt){
+  			var numMatrix = digit[num];
+  			for(var y = 0;y<numMatrix.length;y++){
+  				for(var x = 0;x<numMatrix[y].length;x++){
+  					if(numMatrix[y][x]==1){
+  						cxt.beginPath();
+  						cxt.arc(offsetX+RADIUS+RADIUS*2*x,offsetY+RADIUS+RADIUS*2*y,RADIUS,0,2*Math.PI);
+  						cxt.fill();
+  					}
+  				}
+  			}
+  			cxt.beginPath();
+  			offsetX += numMatrix[0].length*RADIUS*2;
+  			return offsetX;
+  		}
+
+  		var canvas = document.getElementById("canvas");
+  		canvas.width=WINDOW_WIDTH;
+  		canvas.height=WINDOW_HEIGHT;
+  		context = canvas.getContext("2d");
+
+  		//记录当前绘制的时刻
+  		var currentDate = new Date();
+
+  		setInterval(function(){
+  			//清空整个Canvas，重新绘制内容
+  			context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+  			drawDatetime(context);
+  		}, 50)
+})();
+</script>
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.canyue.top/article/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/../image/avatar.jpg">
+      <meta itemprop="name" content="CanYue">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="CanYue's house">
+      <meta itemprop="description" content="梳理知识的同时,希望也能帮助到你">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="X86内存机制的小研究 | CanYue's house">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          X86内存机制的小研究
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-07-11 09:57:00" itemprop="dateCreated datePublished" datetime="2023-07-11T09:57:00+08:00">2023-07-11</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2024-03-16 15:34:01" itemprop="dateModified" datetime="2024-03-16T15:34:01+08:00">2024-03-16</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%AC%94%E8%AE%B0%E5%88%86%E4%BA%AB/" itemprop="url" rel="index"><span itemprop="name">笔记分享</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>15k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>50 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><blockquote>
+<p>以下内容涉及知识点较深，可能有误，望指出。参考时建议再次查证内容的准确性。</p>
+<p>文章很长、这已经是我拆开来写的了，建议收藏慢慢看</p>
+<p>本篇偏向于以CPU的视角</p>
+</blockquote>
+<p>内存(Internal memory、也被习惯称为Memory)，是一个与外存(External memory)相对的概念，本质上是CPU<code>能够直接寻址</code>的<code>存储空间</code>，存储空间<code>由存储器(Memory)提供</code>，可为RAM(Random access memory,随机存储器)、ROM(Read only memory,只读存储器)、cache(高数缓冲存储器)、register(寄存器)，这也就是说除了内存条提供的空间外，主板存储BIOS的存储器、CPU缓存以及寄存器，都可以作为提供内存空间的存储器。而外存(也成为辅助存储器)就是那些CPU无法直接去寻址的空间，主要用于弥补内存的不足，提供外存才存储介质有:硬盘、软盘、U盘、SD卡等</p>
+<p>不过在日常通常提到的内存是RAM，大家也叫习惯了，这也就是很多人把RAM和内存两者概念混淆的原因，内存不一定是RAM、RAM不一定是内存(好奇可自行百度 ANS-9010)。</p>
+<p>内存作为存储器，自然是用于存放程序以及数据的。只不过内存常为RAM，所以数据在存储器断电后就消失了。故通常只用于作为程序会数据的临时运行环境，一般不作为长期存储的介质。</p>
+<span id="more"></span>
+
+<h1 id="依赖"><a href="#依赖" class="headerlink" title="依赖"></a>依赖</h1><p>依赖：一些基础知识，这些知识有助于辅助后续的内容理解</p>
+<p>若你已经对此有一定了解，可选择性跳过</p>
+<h2 id="80X86处理器？"><a href="#80X86处理器？" class="headerlink" title="80X86处理器？"></a>80X86处理器？</h2><p>1978年，微软发布了第一款16位处理器：Intel 8086，开启了X86时代，并首次使用了分段管理的内存管理方式。</p>
+<p>长这样，和现在的CPU外观上还是有差别，图片来自维基百科：</p>
+<p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/8086%E5%AE%9E%E6%8B%8D.jpg" alt="8086实拍"></p>
+<p>作为16位处理器，其数据总线长度为16位，微软使用了加法器将内部两个16位地址相加得到20位地址，从而使得其寻址能力提升到1MB。再利用这20位地址在存储器上寻得指令，指令经过内部指令缓冲器交由指令执行器执行。</p>
+<p>80X86处理器这个说法，主要是用于表示8086以及8088(便宜版的8086)那个时代的16位的X86处理器</p>
+<h2 id="分段管理的诞生"><a href="#分段管理的诞生" class="headerlink" title="分段管理的诞生"></a>分段管理的诞生</h2><p>这个我细说，因为段基址、段基值、偏移量等与分段密切相关。</p>
+<p>因为当时工艺限制，导致8086CPU还是只能使用早期八位处理器的40个引脚，如下：</p>
+<p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/8086%E5%BC%95%E8%84%9A%E5%AE%9A%E4%B9%89.png" alt="8086引脚定义"></p>
+<p>查阅资料，8086CPU使用AD0~AD15通过复用引脚的方式用于传递地址以及数据，8086CPU地址总线为16位，而地址总线(AB)直接影响着寻址空间。其计算公式为：</p>
+<p>$$<br>寻址空间 &#x3D; 2 ^ {地址总线条数}<br>$$<br>但地址总线通常只能是数据总线的整数倍，可又受限于当时工艺，无法将地址总线设置为32条，可16条的地址总线只能支持:<br>$$<br>2 ^ {16} &#x3D; 65536Byte &#x3D; 64KB<br>$$</p>
+<blockquote>
+<p>内存按字节编址，所以这里的65536个地址代表65536字节</p>
+</blockquote>
+<p>为了实现更大的寻址空间，因特尔通过将地址总线加到20条，也就是支持:<br>$$<br>2 ^ {20} &#x3D; 1048576Byte &#x3D; 1024KB &#x3D; 1MB<br>$$<br>虽然只增加了4条地址总线，但寻址空间就原地扩大了16倍，看着是很香，但这就遇到了新的问题。</p>
+<p>还记得地址总线通常只能是数据总线的整数倍吗，20条的地址总线数与16条的数据总线数并不兼容，咋办，这时候分段就诞生了。</p>
+<h3 id="后人"><a href="#后人" class="headerlink" title="后人"></a>后人</h3><p>由于汇编语言在各个类型的处理器中不通用，所以人们就都喜欢去学相对更为通用的汇编语言，这就导致了很多教程都是以80X86举例。</p>
+<p>通常一些人会把80X86用于表示最初的X86架构处理器，而X86用于表示比较新的处理器，而X64用于代表后期64位的X86-64处理器。</p>
+<p><em>既然大家都用，我也用</em></p>
+<h2 id="实模式"><a href="#实模式" class="headerlink" title="实模式"></a>实模式</h2><p>实模式(Real mode),是为了让80286之后的处理器去兼容早期80X86处理器的一种工作模式,在CPU的复位(reset)、加电(power on)过程中也会使用</p>
+<p>该模式下，CPU的寻址方式与80X86类似，直接面向物理地址，使用16位段基值左移4位得到20位段基址，再加16位偏移量得到物理地址，故该模式只能寻址1MB的内存空间，且无分段机制。</p>
+<blockquote>
+<p>在X64处理器中，取消了实模式！</p>
+</blockquote>
+<h2 id="保护模式"><a href="#保护模式" class="headerlink" title="保护模式"></a>保护模式</h2><p>保护模式(Protected Mode、pmode),又称为保护地址模式，是一种在80286后出现的一种新的CPU工作模式，保护模式支持存储器保护、标签页系统、硬件支持的虚拟内存，且突破之前的内存限制，通常最大寻址空间为2^32字节，即4GB(80286只有24位的数据总线，最大只能支持2^24字节，即16MB的寻址空间)。下图表示80286处理器在保护模式下的寻址过程:</p>
+<p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/286CPU%E5%9C%A8%E4%BF%9D%E6%8A%A4%E6%A8%A1%E5%BC%8F%E4%B8%8B%E7%9A%84%E5%AF%BB%E5%9D%80.png" alt="286CPU在保护模式下的寻址"></p>
+<p>为兼容之前的程序，X86处理器都在重置与上电时工作在实模式，想要切换到保护模式，需由操作系统在引导的时候切换到保护模式。</p>
+<p>在保护模式下，寄存器保存的数据不再是物理内存地址，而是段选择符(也有人叫选择器、选择子)，由选择符在对应的描述符表中拿到段基址，再与偏移量相加得到物理地址。</p>
+<p>在80386后首次出现分页机制，同样也兼容80286的无分页的保护模式，不过386的数据总线为32位，故支持4GB寻址空间。下图表示80386处理器在保护模式下4KiB的分页寻址：</p>
+<p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/386CPU%E5%9C%A8%E4%BF%9D%E6%8A%A4%E6%A8%A1%E5%BC%8F%E4%B8%8B4KiB%E7%9A%84%E5%88%86%E9%A1%B5%E5%AF%BB%E5%9D%80.jpg" alt="386CPU在保护模式下4KiB的分页寻址"></p>
+<p>分页机制的出现，使得386的保护模式与286的保护模式具有更多的优点，例如(来自维基百科)：</p>
+<ul>
+<li>操作系统可以控制与限制进程对页面的访问权限</li>
+<li>为应用程序创造一个连续的、独立的、线性的虚拟内存空间</li>
+<li>页面可以移出<a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E4%B8%BB%E5%AD%98">主存</a>，存入更慢速的次级<a target="_blank" rel="noopener" href="https://zh.wikipedia.org/w/index.php?title=%E5%A4%96%E5%AD%98%E5%82%A8%E5%99%A8&action=edit&redlink=1">外存</a>如<a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E7%A1%AC%E7%9B%98">硬盘</a>。这使得操作系统可以使用比物理内存更大的存储空间。</li>
+</ul>
+<h2 id="虚拟8086模式"><a href="#虚拟8086模式" class="headerlink" title="虚拟8086模式"></a>虚拟8086模式</h2><p>虚拟8086模式，有人叫虚拟86模式，最早在80386处理器中出现，该模式主要是为了使得已经进入保护模式下的CPU可以兼容早期8086时代的程序(实模式到保护模式是单向的)</p>
+<p>以Windows为例，WIndows系统工作在保护模式下，但其前身DOS工作在实模式下，需要在Windows中运行DOS程序(例如32位的CMD<code>所启动的MS-DOS环境以及里面跑的东西</code>，有人说错了，特指出，CMD本身运行在保护模式)，就需要单独开辟1MB的内存，并创建一个进程，让这个进程利用这1MB空间去模拟一个8086那时候的环境，这就是虚拟8086模式。</p>
+<blockquote>
+<p>在X64处理器中，取消了虚拟8086模式</p>
+</blockquote>
+<h2 id="长模式"><a href="#长模式" class="headerlink" title="长模式"></a>长模式</h2><p>当时的人们可能认为4GB足够了，但放到现在4GB跑IDEA都够呛，显然，32位的数据总线放现在很多场景已经满足不了需求</p>
+<p>长模式(Long mode)，也叫X64保护模式,这是处于X86-64处理器中的模式，该模式可以使用64为的指令和寄存器，同时也提供IA-32仿真模式以兼容32位的应用程序。</p>
+<blockquote>
+<p> X64比较特殊，目前不放在X86这篇里面,这里只是提几句。</p>
+</blockquote>
+<h2 id="了解一点点汇编"><a href="#了解一点点汇编" class="headerlink" title="了解一点点汇编"></a>了解一点点汇编</h2><blockquote>
+<p><em>会汇编的自觉跳过</em></p>
+</blockquote>
+<p>这里快速了解一点点必要的汇编指令知识皮毛，不然可能进行不下去。</p>
+<blockquote>
+<p>下面来自百度百科与维基百科并修改</p>
+</blockquote>
+<p>什么是汇编指令，汇编指令是汇编语言中一些操作符和助记符，还包括一些伪指令，任何一款处理器在设计时，就已规定好自己特定的指令系统，这种指令系统的功能也就决定了由该微处理器构成的计算机系统及其基本功能。指令系统中所设计的每条指令都对应着微处理器要完成的一种规定功能操作，即这些指令功能的实现都是由微处理器中的物理器件完成的。要使计算机完成一个完整的任务，就需要执行一组指令，这组指令通常称为程序。计算机能够执行的各种不同指令的集合就称为处理器（CPU）的指令系统。</p>
+<p>什么是汇编语言(assembly language)，汇编语言是任何一种用于<a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E7%94%B5%E5%AD%90%E8%AE%A1%E7%AE%97%E6%9C%BA">电子计算机</a>、<a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E5%BE%AE%E5%A4%84%E7%90%86%E5%99%A8">微处理器</a>、<a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E5%BE%AE%E6%8E%A7%E5%88%B6%E5%99%A8">微控制器</a>，或其他可编程器件的<a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E4%BD%8E%E7%BA%A7%E8%AF%AD%E8%A8%80">低级语言</a>。在不同的设备中，汇编语言对应着不同的<a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E6%9C%BA%E5%99%A8%E8%AF%AD%E8%A8%80">机器语言</a><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E6%8C%87%E4%BB%A4%E9%9B%86%E6%9E%B6%E6%A7%8B">指令集</a>。一种汇编语言专用于某种<a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%B3%BB%E7%BB%9F%E7%BB%93%E6%9E%84">计算机系统结构</a>，而不像许多<a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E9%AB%98%E7%BA%A7%E8%AF%AD%E8%A8%80">高级语言</a>，可以在不同系统平台之间移植。汇编语言虽然是低级语言，但相对二进制的机器语言要高级。</p>
+<h3 id="操作码"><a href="#操作码" class="headerlink" title="操作码"></a>操作码</h3><p>操作码（Operation Code）用来说明指令操作的性质与功能，常用OP表示。</p>
+<p>通常内存寻址用到：</p>
+<p>MOV:即传送字或字节，有点类似于赋值。</p>
+<p>JMP:无条件转移指令。</p>
+<p>ADD： 加法。</p>
+<p>ADC： 带进位加法。</p>
+<p>SUB： 减法。</p>
+<p>SBB： 带借位减法。</p>
+<p>MUL： 无符号乘法</p>
+<p>DIV： 无符号除法</p>
+<p>其他的可以参考<a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E6%B1%87%E7%BC%96%E6%8C%87%E4%BB%A4/9979890">百度百科</a></p>
+<h3 id="操作数和操作数地址"><a href="#操作数和操作数地址" class="headerlink" title="操作数和操作数地址"></a>操作数和操作数地址</h3><p>操作数(Operand)：运算符作用于的那个实体,这里的数，可以理解成数据，非数量。</p>
+<p>操作数的地址，就是操作数存放的地址，通常有存储单元、IO接口、CPU内部寄存器，本章就是内存地址。</p>
+<p>有时候你看到操作数地址是两个或三个字母，不分大小写，他们一般表示寄存器:</p>
+<p>数据寄存器：AX、BX、CX、DX</p>
+<p>段寄存器：CS、DS、ES、SS</p>
+<p>基址寄存器：BP、SP</p>
+<p>变址寄存器：SI、DI</p>
+<p>寄存器：REG</p>
+<p>寄存器中Rn的值：REG[Rn]</p>
+<h3 id="操作结果存放的地址"><a href="#操作结果存放的地址" class="headerlink" title="操作结果存放的地址"></a>操作结果存放的地址</h3><p>这个类似前者，就是将操作的数据改为操作数据后的结果</p>
+<h3 id="下一条指令的地址"><a href="#下一条指令的地址" class="headerlink" title="下一条指令的地址"></a>下一条指令的地址</h3><p>程序顺序执行时，下一条指令的地址由CPU中的程序计数器给出。如果遇到程序转移或者调用子程序时，下一条地址由指令给出。</p>
+<h3 id="有效地址"><a href="#有效地址" class="headerlink" title="有效地址"></a>有效地址</h3><p>有效地址，通常使用EA表示，我的理解是这样的：能被用来找到东西的地址</p>
+<p>例如8086中，段基值位移后与偏移量结合得到的物理地址。</p>
+<h3 id="立即数"><a href="#立即数" class="headerlink" title="立即数"></a>立即数</h3><p>立即数指的是指令中直接给出的一个数值常量，直接就拿到，不要再去别的地方读取，例如用于表示立即寻址方式所找到那个地址。</p>
+<h1 id="内存管理方式"><a href="#内存管理方式" class="headerlink" title="内存管理方式"></a>内存管理方式</h1><p>在很久很久以前，程序员通常使用汇编语言开发，程序员在开发是直接使用物理内存地址，这就会导致可能两个或是更多的程序用时读写一个地方，程序A的数据刚刚写入，立马又被程序B修改了，程序要再次读取数据的时候就发现不对，啪！立马就不干了。</p>
+<p>这就是除了分段机制诞生之初是为了解决寻址空间不够的问题外，内存管理方式的另一个作用。</p>
+<h2 id="分段机制"><a href="#分段机制" class="headerlink" title="分段机制"></a>分段机制</h2><p>内存分段就是将内存空间按照特定的需求，分为若干个段，每个段由段基址与段界限(决定段长度)确定，但每个段的长度并不固定(英特尔8086CPU中，内存段大小不超过64KB，在较新的X86处理器保护模式中，通过段描述符中的”Granularity”位，可将段的长度扩大到不超过4GB)，每个段在<code>其地址范围内</code>是<code>连续</code>的,不同段之间可<code>不相邻</code>，各段<code>大小不固定</code>。</p>
+<h3 id="具体过程"><a href="#具体过程" class="headerlink" title="具体过程"></a>具体过程</h3><ol>
+<li>在程序编译时,编译器和链接器会将程序的逻辑地址空间划分为多个<code>段</code>,比如代码段、数据段、堆栈段等。</li>
+<li>在程序加载时,操作系统会为每个段分配内存空间,并设置好其<code>段基址</code>和<code>段界限</code>。</li>
+<li>CPU中的<code>段寄存器</code>保存了当前代码正在访问的段的信息。</li>
+<li>当CPU要访问内存时,会生成一个<code>逻辑地址</code>,包含<code>段选择符</code>和<code>偏移量</code>两部分。</li>
+<li>X86保护模式下用段选择器在描述符表中查找到对应的<code>段描述符</code>,获取到段基址。</li>
+<li>将偏移地址加上段基址或转换后的段基值,形成线性地址或物理地址。</li>
+<li>检查地址是否超出了段界限,如果超出则触发段错误异常。</li>
+<li>如果地址合法,使用线性地址访问内存。</li>
+<li>如果需要切换到其他段,改变段寄存器的值,执行新的地址转换过程。</li>
+<li>程序结束时,操作系统会回收程序占用的各个内存段。</li>
+</ol>
+<h3 id="空间碎片"><a href="#空间碎片" class="headerlink" title="空间碎片"></a>空间碎片</h3><p>分段不是百利无害的，分段允许段间不相邻且段大小不一致，这势必会产生外部碎片。</p>
+<p>就像这样，分段机制将各种方法、数据等等都分好了段，就算一开始各个段都相邻、没有空隙，但随着程序的运行，有段被释放，有新段被申请加入，要是一个大段被释放，而在原有空间放入一个较小的段，就会出现一个空隙，这个空隙要是放不下其他段，就是外部空间碎片。</p>
+<p>由于分段机制是事先根据内容进行分段，是一种动态分配，所以一般不会产生内部碎片，主要还是外部碎片。</p>
+<p>通常用于缓解外部碎片有以下方法:</p>
+<ul>
+<li>移动段的位置，使其紧凑。但这方法速度慢，移动过程中还影响程序的运行。</li>
+<li>将要放入的段切小块，放到各个缝隙中。但这不是你想切就能切。</li>
+</ul>
+<h2 id="分页机制"><a href="#分页机制" class="headerlink" title="分页机制"></a>分页机制</h2><p>在X86实模式以及80X86上，是没有实现内存分页的，分页机制是应该在80386处理器上首次出现，在80386之后的处理器中，处理器内控制标识符CR0的<code>PG控制位为1时</code>，将采用分页机制。</p>
+<p>内存分页和分段类似，也是将内存空间分为多个段，然后使用一个虚拟地址去描述(在这就叫线性地址)，X86的分页机制，允许将任何的物理单元分配到线性地址。</p>
+<p>分页<code>不会产生外部碎片</code>,这是因为其实将空间划分为多个<code>连续</code>的区域，这个区域称为页(Page)，这是逻辑层面的概念，在物理层面上<code>对应页框</code>，页不会很大，通常为4KB，过大的页会加重内部碎片从而浪费空间，过小的页会增加页表项，影响页表的查询效率以及TLB页表的缓存命中率，4KB是人们总结的经验得来的。每个页的<code>大小是相同</code>的，这是因为页是静态分配，当然，这就无法避免的造成内部碎片的产生。</p>
+<p>分页机制使用<code>页号</code>来标识各个页,使用<code>页表</code>(Page Table)映射其与<code>页框</code>的关系。为了节约内存，页表通常是多级结构的，但多级结构就会导致在查询时需要分多步进行，影响效率。此时就可以使用TLB(Translation lookaside buffer,旁路转换缓冲)页表(也被称为快表)来缓解.<code>TLB页表</code>是一张小容量但查找速度极快的缓存表，被放置在CPU的缓存中，存放了部分页表中的内容，在做地址转换时，会先去TBL页表中查找，若未命中，才去内存中找页表查找。TLB页表会不间断的在维护，例如发生TLB miss(缓存未命中)、TLB页表满等情况时，会自动补充或替换TLB页表的项。</p>
+<h3 id="具体过程-1"><a href="#具体过程-1" class="headerlink" title="具体过程"></a>具体过程</h3><ol>
+<li>操作系统按照固定大小将物理内存划分为多个<code>页框</code>。</li>
+<li>根据进程虚拟地址空间,<code>建立</code>多级<code>页表</code>,存储页面映射信息。</li>
+<li>当CPU要访问内存时,将虚拟地址分为<code>页目录索引</code>、<code>页表索引</code>和<code>页内偏移量</code>。</li>
+<li>通过索引动作,查找对应的物理<code>页框号</code>。</li>
+<li>将物理<code>页框号</code>和页内<code>偏移量 组合</code>,得到<code>物理地址</code>。</li>
+<li>根据物理地址访问内存相应位置,读取或写入数据。</li>
+<li>如果页表项无效,则触发缺页异常,操作系统将暂停进程,并从磁盘加载需要的页面。</li>
+<li>访问结束后,操作系统可以根据策略回收物理页面,并在页表中标记无效。</li>
+<li>页表也会存储访问权限位,实现页面级内存保护。</li>
+</ol>
+<h1 id="内存地址"><a href="#内存地址" class="headerlink" title="内存地址"></a>内存地址</h1><p>内存地址通常以16进制数来表示，与字面意思一样，表示内存中的一个位置，用于访问内存中的数据。</p>
+<p>在X86处理器中，以下是X86保护模式下的流程图：</p>
+<p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E9%80%BB%E8%BE%91%E5%9C%B0%E5%9D%80_%E7%BA%BF%E6%80%A7%E5%9C%B0%E5%9D%80_%E7%89%A9%E7%90%86%E5%9C%B0%E5%9D%80.png" alt="逻辑地址_线性地址_物理地址"></p>
+<h2 id="逻辑地址-logical-address"><a href="#逻辑地址-logical-address" class="headerlink" title="逻辑地址(logical address)"></a>逻辑地址(logical address)</h2><p>现在逻辑地址更多是为了兼容更早之前的设备所遗留的。前面提到在Intel8086&#x2F;8088CPU中，为了使得CPU能支持的内存从64KB提升到1MB，从而诞生了内存分段以及逻辑地址。</p>
+<p>逻辑地址是由编译器生成，故对程序员可见，在编译的过程中，编译器会生成代码段和数据段，每句代码和每条数据都有其相应的逻辑地址。</p>
+<p>由于早期80X86CPU与后续CPU设计差异较大，导致分段机制的逻辑差异较大,如下:</p>
+<p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/X86%E4%BF%9D%E6%8A%A4%E6%A8%A1%E5%BC%8F%E4%B8%8B%E5%88%86%E6%AE%B5%E6%9C%BA%E5%88%B6%E6%B5%81%E7%A8%8B.jpg" alt="X86保护模式下分段机制流程"></p>
+<p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/80X86%E5%88%86%E6%AE%B5%E6%9C%BA%E5%88%B6%E6%B5%81%E7%A8%8B.jpg" alt="80X86分段机制流程"></p>
+<h3 id="逻辑地址的结构"><a href="#逻辑地址的结构" class="headerlink" title="-逻辑地址的结构"></a>-逻辑地址的结构</h3><p>X86中逻辑地址是通过16位的段选择符(Segment Selector，也有人叫作选择子)和32位的用来指定段内相对地址的段偏移量(offset)组成，一般用”:”分割</p>
+<p>下图是中选择符是现在X86微处理器的概念，在<code>80X86中没有段选择符</code>，而是16位的<code>段基值</code>，且段<code>偏移量也只有16位</code></p>
+<p>X86概念图如下： <em><a target="_blank" rel="noopener" href="https://blog.csdn.net/wdqqbyt4321/article/details/96978639">图片来源</a></em></p>
+<p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E9%80%BB%E8%BE%91%E5%9C%B0%E5%9D%80%E7%BB%93%E6%9E%84.png" alt="逻辑地址结构"></p>
+<h3 id="段寄存器"><a href="#段寄存器" class="headerlink" title="-段寄存器"></a>-段寄存器</h3><p>为了方便选择段选择符，80X86处理器提供了6个段寄存器用来存放段选择符</p>
+<p>分别是:CS DS SS ES FS GS,在8086处理器中，他们用于存放段段地址(实模式)&#x2F;选择符(保护模式)的可见部分都是16位长度，以下含义针对的是80X86，已知X64好像有改动。</p>
+<ul>
+<li>CS为代码段寄存器；</li>
+<li>SS为栈段寄存器；</li>
+<li>DS为数据段寄存器；</li>
+<li>其他三个是附加段，作一般用途</li>
+</ul>
+<h3 id="段选择符-保护模式特有"><a href="#段选择符-保护模式特有" class="headerlink" title="-段选择符(保护模式特有)"></a>-段选择符(保护模式特有)</h3><blockquote>
+<p>这是X86处理器在保护模式下特有的机制</p>
+</blockquote>
+<p>段<code>选择符</code>长度为16位，其中前13位是索引号（index），用于表示在描述符表中的位置。</p>
+<p>TI(Table Indicator，表指示符)，TI&#x3D;0表示段<code>描述符</code>在GDT(全局描述表)中，而T&#x3D;1表示在LDT(局部描述表)中</p>
+<p>还有2位的RPL(Requestor Privilege Level，请求优先级&#x2F;特权级)由00-11，数字越大特权级越低，低特权级是无法访问高特权级的</p>
+<p>结构如下： <em><a target="_blank" rel="noopener" href="https://blog.csdn.net/wdqqbyt4321/article/details/96978639">图片来源</a></em></p>
+<p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E6%AE%B5%E6%A0%87%E8%AF%86%E7%AC%A6%E7%BB%93%E6%9E%84.png" alt="段标识符结构"></p>
+<h3 id="GDT和LDT-保护模式特有"><a href="#GDT和LDT-保护模式特有" class="headerlink" title="-GDT和LDT(保护模式特有)"></a>-GDT和LDT(保护模式特有)</h3><blockquote>
+<p>这是X86处理器在保护模式下特有的机制</p>
+</blockquote>
+<p>这两个都是用于存放段描述符的日期，只不过他们作用于不同</p>
+<p>你可以将它们俩看成是公共场合和私人场所的关系</p>
+<p>GDT(Global Descriptor Table，全局描述符表)是公开的，所有程序都共享一个GDT，</p>
+<p>LDT(Locol Descriptor Table，局部描述符表)是私有的，里面都是某个任务特有的描述符</p>
+<p>若有一个段a，还有一个任务B。要是GDT和任务B中的LDT都没有段a的描述符，则任务B无法访问段a</p>
+<h3 id="段描述符-保护模式特有"><a href="#段描述符-保护模式特有" class="headerlink" title="-段描述符(保护模式特有)"></a>-段描述符(保护模式特有)</h3><blockquote>
+<p>这是X86处理器在保护模式下特有的机制</p>
+</blockquote>
+<p>段描述符主要存放的是一个段的属性，其中就包含了段基址以及段大小限制、描述符优先级等控制位。</p>
+<p>如下: </p>
+<blockquote><p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E6%AE%B5%E6%8F%8F%E8%BF%B0%E7%AC%A6.png" alt="段描述符"></p>
+<p>G：粒度标志。Segment Limit 字段的大小比例。G&#x3D;0，Segment Limit 以字节为单位；G&#x3D;1，Segment Limit 以4KB为单位，计算：实际段界限 &#x3D; 描述符中的段界限 * 0x1000 + 0xFFF。该标志不影响Base字段的粒度，Base字段永远以字节为单位。</p>
+<p>Segment Limit：表示该段的大小&#x2F;界限。处理器用G标志位来解释该字段。当G&#x3D;0，段的大小是1B~MB，以1字节为单位增长；当G&#x3D;1，段的大小是4KB~4GB，以4KB为单位增长。对于段的扩展方向，如果是向上扩展段，逻辑地址的偏移量是0~Segment Limit；如果是向下扩展段，逻辑地址的偏移量是Segment Limit（最小值）~FFFFFFFFh或FFFFh。实模式下，处理器将Limit预置成0xFFFF，以防出错。</p>
+<p>Base：段在线性地址空间中的开始位置。段基址应当是16字节边界对齐的，提高程序性能。</p>
+<p>DPL：该描述符的特权级，0 ~ 3。用于控制对该段的访问。</p>
+<p>P：表示该段是否在内存。P&#x3D;1，该段在内存中；P&#x3D;0，该段不在内存中，处理器产生一个#NP异常，操作系统可以自由地使用Available域。</p>
+<p>D：处理器默认操作尺寸，表示该段按16位还是32位尺寸操作。对于代码段，D&#x2F;B位是D位，表示默认的操作尺寸。当D&#x3D;0，表示16位默认操作尺寸；当D&#x3D;1，表示32位默认操作尺寸。</p>
+<p>B：对于数据段，D&#x2F;B位是B位。当栈段的B位&#x3D;0，使用sp；B位&#x3D;1，使用esp。</p>
+<p># L：用于IA-32e模式下。表示一个代码段是否包含原生64位代码。L&#x3D;1，表示该代码段中的指令运行在IA-32e下，D位必须为0；L&#x3D;0，表示该代码段中的指令运行在兼容模式下，该位作为保留位。</p>
+<p>AVL：是否可以被系统软件使用。</p>
+<p>S：确定段描述符是系统&#x2F;门段描述符（S&#x3D;0）还是代码&#x2F;数据段描述符（S&#x3D;1）。</p>
+<p>Type：表示段的类型（代码段、数据段、门、系统段）和它们的权限和信息。具体是什么段先由S位决定再根据Type域的二进制决定。</p>
+<footer><strong>图片和描述来源</strong><cite><a target="_blank" rel="noopener" href="https://www.cnblogs.com/SuperGreen/p/15490472.html">博客园《内存管理--段描述符》</a></cite></footer></blockquote>
+
+<h3 id="段基值和段基址"><a href="#段基值和段基址" class="headerlink" title="-段基值和段基址"></a>-段基值和段基址</h3><p>这两个的诞生还是与内存的分段机制有关，我们了解过，前面写到80X86理论上只能支持64KB的内存，但因特尔不服，就发明出了内存分段这一个概念。</p>
+<p>虽然经过因特尔的魔改，地址总线增加到了20条，但80X86处理器寄存器的可见部分是16位的，这就相当于CPU可以寻址1MB的空间，但是你的地址只能写16位。也就还是64KB，那怎么办：</p>
+<p>80X86采用了分段寻址的方式，细节<a href="#%E5%88%86%E6%AE%B5%E6%9C%BA%E5%88%B6">往上翻</a>，我就当你了解了哈。</p>
+<p>段基址(Segment Base Address): 也被叫做段基地址，表示段的起始位置，在80X86中有20位。在X86保护模式下有32位，在X86长模式下有64位。</p>
+<p>段基值(Segment Base Value)：段基值的高16位，用于存放在寄存器中。也是用于表示段的起始位置，<code>该概念已在X86上被弃用</code>。</p>
+<p>正由于这两个表示的意思相同，加上<code>新版的X86不用再做该转换</code>，导致很多资料将其混淆，甚至出现段基址&#x3D;段基值的情况。</p>
+<p>在80X86中他们之间的关系可以看做：<br>$$<br>\begin{align}<br>段基值 &amp;&#x3D; 段基址 &lt;&lt; 4 \\<br>&amp;&#x3D; 段基址 \times 10H<br>\end{align}<br>$$<br>而在因特尔80286CPU之后引入引入了一种新的操作模式(保护模式)，该模式的段基址由更前面提到的段描述符中得到，不过80286还是要做段基址到段基值的转换(和8086不一样，具体百度，非主要内容)。</p>
+<p>而我们可以通过段基址和偏移量相加得到物理地址(实模式)&#x2F;线性地址(保护模式)</p>
+<p>如下:<br>$$<br>\begin{align}<br>物理地址 or 线性地址 &amp;&#x3D; 段基址 + 偏移量<br>\end{align}<br>$$</p>
+<h3 id="偏移量"><a href="#偏移量" class="headerlink" title="-偏移量"></a>-偏移量</h3><p>偏移量(Offset)，又叫偏移地址(Offset Address)是用于表示某一地址相对于段基值的一个偏移量</p>
+<h3 id="Linux中的逻辑地址"><a href="#Linux中的逻辑地址" class="headerlink" title="-Linux中的逻辑地址"></a>-Linux中的逻辑地址</h3><p>Linux系统使用了些特殊的方法”关闭”了分段，即想办法使逻辑地址等于线性地址。具体来说貌似是将所有类型的段的段基址都设成 0（包括内核数据段、内核代码段、用户数据段、用户代码段等），迫使所有的段重合，这样就自然不存在分段了。</p>
+<p>不过在不兼容的时候，Linux还是会正常使用分段，但这也只是极少数才会出现的情况。</p>
+<h2 id="线性地址-linear-address"><a href="#线性地址-linear-address" class="headerlink" title="线性地址(linear address)"></a>线性地址(linear address)</h2><blockquote>
+<p>以下是80386之后的保护模式下的线性地址</p>
+</blockquote>
+<p>线性地址由CPU生成的，在X86中，线性地址由逻辑地址分段后得到，是逻辑地址到物理地址的一个中间地址。线性地址也只是抽象的概念，同样不表示数据存放在存储器上的真实位置。</p>
+<p>在X86分页机制中，处于保护模式下，线性地址长度为32位，最大寻址空间为4GB，而在64为长模式中线性地址长度为64位，最大寻址空间为16EB，这也就是为什么当年XP时代，很多计算机只能支持4GB的原因。本章只考虑32位的保护模式。</p>
+<p>线性地址32位由高到低分别分为三个部分，并按照如下流程映射至物理地址，如下图:</p>
+<p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/X86%E4%BF%9D%E6%8A%A4%E6%A8%A1%E5%BC%8F%E4%B8%8B%E7%9A%84%E5%88%86%E9%A1%B5%E6%9C%BA%E5%88%B6.jpg" alt="X86保护模式下的分页机制"></p>
+<h3 id="页标志位"><a href="#页标志位" class="headerlink" title="-页标志位"></a>-页标志位</h3><p>页标志位(PG)是用于表示内存是否采用分页机制，页标志位存放在CR0(Control Register 0,CPU的一个和工作模式相关的控制寄存器)的31Bit的位置上，为1则表示采用了分页机制。</p>
+<h3 id="页目录基地址寄存器"><a href="#页目录基地址寄存器" class="headerlink" title="-页目录基地址寄存器"></a>-页目录基地址寄存器</h3><p>页目录基地址寄存器(PDBR，Page Directory Base Register),而它存放了20Bit长度的<code>页目录的基地址</code>和一些控制位。</p>
+<p>PDBR存放在CR3(Control Register 3,CPU的一个和页目录相关的寄存器)中</p>
+<h3 id="页目录"><a href="#页目录" class="headerlink" title="-页目录"></a>-页目录</h3><p>每个进程都有它自己的一个页目录(PD,Page Directory)，他位于一个由操作系统的属于内核的内存中，由操作系统进行维护，普通程序无权访问与操作页目录，也目录可容纳1024个页目录项。在操作系统切换进程时会切换页目录。</p>
+<p>页目录不是第一个索引的对象，只有在TLB页无法索引到页框号是才会通过页目录去找页表拿到页框号。</p>
+<h3 id="页目录项"><a href="#页目录项" class="headerlink" title="-页目录项"></a>-页目录项</h3><p>页目录项(PDE，Page Directory Entry)，用于表示页目录的一项，内含相对应<code>页表的基地址</code>以及其他控制信息，在页大小为4KB时如下：</p>
+<p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E9%A1%B5%E7%9B%AE%E5%BD%95%E9%A1%B9%E7%BB%93%E6%9E%84.png" alt="页目录项结构"></p>
+<ul>
+<li>Page-Table Base Address:页表基址(页表的起始位置)</li>
+<li>Avail：待研究</li>
+<li>G：全局位，为1时，表示该页是全局的，全局项会被缓存</li>
+<li>PS：为0时，页的大小是4KB；为1时，若使用的是普通的32为寻址页的大小是4MB</li>
+<li>A：访问位，用于记录页有没有被访问过</li>
+<li>PCD：Page Cache Disable，用于表示页是否不可被缓存，为0是可被缓存，为1为不可以被缓存，</li>
+<li>PWT：Page Write Through，标识页也在被缓存时是否将数据也写入内存,为0时不写入，为1时写入</li>
+<li>U&#x2F;S：用户权限标识，为0时，普通用户无权限，为1时，普通用户拥有读与执行权限，普通用户的写权限由R&#x2F;W标识控制，超级用户(拥有0、1、2特权级)始终拥有读写执行三个权限</li>
+<li>R&#x2F;W：读写权限表示，当U&#x2F;S表示为1时，R&#x2F;W为0时普通用户无写权限、为1时有写权限，超级用户(拥有0、1、2特权级)始终拥有读写执行三个权限</li>
+<li>P：表示页表是否在内存中</li>
+</ul>
+<h3 id="页目录索引"><a href="#页目录索引" class="headerlink" title="-页目录索引"></a>-页目录索引</h3><p>页目录索引(PDI,Page Directory Index)位于线性地址的高10位，即22-31Bit,表示页目录索引，即页目录中的某一<code>页目录项的索引</code>。</p>
+<h3 id="页表"><a href="#页表" class="headerlink" title="-页表"></a>-页表</h3><p>通过页目录项中页表的基地址。可以找到页表。</p>
+<p>页表(Page Table)存放了各<code>页框的信息</code>，每个线程拥有自己的页表，页表主要存放于属于内核的内存中，由操作系统进行维护，一般程序无权访问与修改，操作系统会定期维护页表。其中部分内容会缓存到TLB(Translation lookaside buffer,旁路转换缓冲)中。</p>
+<p>TLB页表又叫快表，存放于CPU中MMU(Memory Management Unit,内存管理单元)的高速缓存中。TLB页表不受操作系统维护，而是交由MMU硬件。MMU会不间断更改TLB页表的内容，例如在TLB miss(TLB 未命中)时，MMU会将未命中的页表项插入TLB页表。</p>
+<h3 id="页表项"><a href="#页表项" class="headerlink" title="-页表项"></a>-页表项</h3><p>页表项(PTE，Page Table Entry)存放了有关页框的相关信息，由于分页是从32位时代才出现的，所以通常来说有两种情况</p>
+<p>在32位操作系统中，页表项长度通常为32位，在64位操作系统中，页表项通常扩展为为64位。</p>
+<p>通常啊，不一定就是，决定程度的因素不只是操作系统的位数。</p>
+<p>在页大小为4KB时如下：</p>
+<p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E9%A1%B5%E8%A1%A8%E9%A1%B9%E7%BB%93%E6%9E%84.png" alt="页表项结构"></p>
+<ul>
+<li><p>Page Base Address:这里更准确的说应该存储的是页框号，通过页框号算出页基址，由于静态分配，页框大小是一致的，所以，可以通过如下方法算出页基址:<br>$$<br>页基址 &#x3D; 页框号 * 页框大小<br>$$<br>而页基址是表示页在物理层面的起始位置(一个物理地址)，通过与页偏移量，得出所求的物理地址。</p>
+</li>
+<li><p>Avail：待研究</p>
+</li>
+<li><p>G：全局位，为1时，表示该页是全局的，全局项会被缓存</p>
+</li>
+<li><p>PS：为0时，页的大小是4KB；为1时，若使用的是普通的32为寻址页的大小是4MB，要是戚永亮扩展寻址则为2MB.</p>
+</li>
+<li><p>A：访问位，用于记录页有没有被访问过</p>
+</li>
+<li><p>PCD：Page Cache Disable，用于表示页是否不可被缓存，为0是可被缓存，为1为不可以被缓存，</p>
+</li>
+<li><p>PWT：Page Write Through，标识页也在被缓存时是否将数据也写入内存,为0时不写入，为1时写入</p>
+</li>
+<li><p>U&#x2F;S：用户权限标识，为0时，普通用户无权限，为1时，普通用户拥有读与执行权限，普通用户的写权限由R&#x2F;W标识控制，超级用户(拥有0、1、2特权级)始终拥有读写执行三个权限</p>
+</li>
+<li><p>R&#x2F;W：读写权限表示，当U&#x2F;S表示为1时，R&#x2F;W为0时普通用户无写权限、为1时有写权限，超级用户(拥有0、1、2特权级)始终拥有读写执行三个权限</p>
+</li>
+<li><p>P：表示页是否在内存中</p>
+</li>
+</ul>
+<h3 id="页表索引"><a href="#页表索引" class="headerlink" title="-页表索引"></a>-页表索引</h3><p>页目录索引(PTI,Page Table Index)位于线性地址的12-21Bit，长10位,表示页表索引，即表示页表中的某一<code>页表项的索引</code>。</p>
+<h3 id="页框号"><a href="#页框号" class="headerlink" title="-页框号"></a>-页框号</h3><p>页框表示着页的对应的物理空间，通常各页框长度一致，紧凑排列，就像一个个框</p>
+<p>页框之间通常<code>页框号</code>表示是哪个页框，通常从0开始累加,有人称为页号，也是这个意思。</p>
+<p>一般我们用这个公式计算出页框号:<br>$$<br>页框号 &#x3D; 逻辑地址 | 单个页框长度<br>$$</p>
+<blockquote>
+<p>这里的|是数学上的整除</p>
+</blockquote>
+<h3 id="页基址"><a href="#页基址" class="headerlink" title="-页基址"></a>-页基址</h3><p>页基址(Page Base Address),也就是页框的起始位置<br>$$<br>页基址 &#x3D; 页框号 * 页框大小<br>$$</p>
+<h3 id="页内偏移量"><a href="#页内偏移量" class="headerlink" title="-页内偏移量"></a>-页内偏移量</h3><p>页框是一个容器，页内偏移量就是逻辑地址(在这就是线性地址)所对应的物理地址在其页框起始地址的偏移量。</p>
+<p>故，一般可通过这个公式计算出页内偏移量<br>$$<br>页内偏移量 &#x3D; 逻辑地址\ mod\ 单页框长度<br>$$</p>
+<blockquote>
+<p>mod 就是取模，即除后取余数</p>
+</blockquote>
+<p>则线性地址对应的物理地址:<br>$$<br>物理地址 &#x3D; 页基址 + 页内偏移量<br>$$</p>
+<h2 id="物理地址-physical-address"><a href="#物理地址-physical-address" class="headerlink" title="物理地址(physical address)"></a>物理地址(physical address)</h2><p>物理地址(physical address)，也叫实地址(real address)、二进制地址(binary address),指的是数据总线能够寻址到的特定的存储单元上的空间的地址。</p>
+<p>通常是由MMU(memory management unit,内存管理单元)将虚拟地址转换为物理地址。</p>
+<p>在X86实模式下，物理地址由段基址向左偏移4位(也就是常说的X16D或X10H)在加上段内偏移量得到</p>
+<p>而在X86保护模式下，物理地址由页基址+页内偏移量得到</p>
+<p>在早期的计算机中，程序员通常使用汇编语言开发，程序员在开发是直接使用物理内存地址，这就会导致可能两个或更多的程序用时读写一个地方，导致出现问题。直接使用物理内存的情况，也发生在单片机的程序开发中。</p>
+<h3 id="物理地址空间"><a href="#物理地址空间" class="headerlink" title="物理地址空间"></a>物理地址空间</h3><p>程序最终也不会随意使用任意的物理地址，同样，也不是所有的物理地址都能提供给程序使用。</p>
+<p>内存空间被分为MMIO(Memory-Mapped I&#x2F;O,内存映射输入和输出)空间和DRAM(动态随机存取内存)空间</p>
+<p>其中MMIO空间用于映射IO设备的控制寄存器，这是PCI的一种规范。当然映射方式不止这一种，你打开Windows设备管理器，点上方查看，切换成按类型列出资源就知道了</p>
+<p>而DRAM空间才是应用程序所能使用的空间。</p>
+<p>通常Windows操作系统的的任务管理器-&gt;性能-&gt;内存中,有个为硬件保留的内存，这就是MMIO区域。</p>
+<p>典型的64位系统下物理内存空间示意图如下: <a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/66288943">图片来源</a></p>
+<p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E5%85%B8%E5%9E%8B%E5%86%85%E5%AD%98%E7%89%A9%E7%90%86%E7%A9%BA%E9%97%B4.jpg" alt="典型内存物理空间"></p>
+<p>由于历史遗留，早期的32位系统因为其最大寻址空间只能有4GB，而现在的内存空间设计为了兼容性，将空间分为高低两块。</p>
+<p>又由于更早的历史遗留，为了兼容性，将最低的那1MB内存(熟悉吧:80X86)保留,而保留他是为了给运行在8086这类早期处理器的操作系统(例如DOS)和已经被淘汰的老BIOS使用的。</p>
+<p>在后期安装了超4GB内存的64为操作系统中，为了不影响32位应用程序的使用(32位应用程序只能使用0-4GB这段内存空间)，将4GB以上的区域定义为高端区，4GB以下的定义为低端区，高低端本质上差别不太大。</p>
+<h1 id="寄存器"><a href="#寄存器" class="headerlink" title="寄存器"></a>寄存器</h1><p>在百度百科中，寄存器的定义是<code>有限存贮容量的高速存贮部件</code>，也在CPU中</p>
+<p>这个说法很直观，但又容易与CPU中高速缓存(Cache)的概念混淆</p>
+<p>寄存器是CPU内部用于临时存放与传送<code>计算数据</code>的一个很小的存储区域，可<code>参与逻辑运算</code>并<code>暂存运算结果</code>，属于CPU在运行时的一些临时空间；而各级缓存是用于加速内存读写使用的一个要比寄存器大但没那么快的区域。</p>
+<p>在计算机领域，寄存器是CPU内部的元件，包括<a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E9%80%9A%E7%94%A8%E5%AF%84%E5%AD%98%E5%99%A8/283978?fromModule=lemma_inlink">通用寄存器</a>、专用寄存器和<a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E6%8E%A7%E5%88%B6%E5%AF%84%E5%AD%98%E5%99%A8/9335215?fromModule=lemma_inlink">控制寄存器</a>。寄存器拥有非常高的读写速度,要比Cache快,甚至是操作系统系统访问数据的最快途径。</p>
+<p>寄存器本质就是用于存储二进制数据或代码的存储器，由能够置0&#x2F;1功能的电路组成，多由<a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E8%A7%A6%E5%8F%91%E5%99%A8/16782?fr=ge_ala">触发器(Flip-Flop、FF)</a>也可是<a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E9%94%81%E5%AD%98%E5%99%A8/10801965?fr=ge_ala">锁存器(latch)</a>组成,这两个具体是什么可以点击链接跳转百度百科，这里贴出百度百科的两张图，有个基本了解。</p>
+<p>由4位触发器构成的数码寄存器(图：百度百科):</p>
+<p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E7%94%B14%E4%BD%8D%E8%A7%A6%E5%8F%91%E5%99%A8%E6%9E%84%E6%88%90%E7%9A%84%E6%95%B0%E7%A0%81%E5%AF%84%E5%AD%98%E5%99%A8.png" alt="由4位触发器构成的数码寄存器"></p>
+<p>由4位触发器构成的右位移寄存器(图：百度百科):</p>
+<p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E7%94%B14%E4%BD%8D%E8%A7%A6%E5%8F%91%E5%99%A8%E6%9E%84%E6%88%90%E7%9A%84%E4%BD%8D%E7%A7%BB%E5%AF%84%E5%AD%98%E5%99%A8.png" alt="由4位触发器构成的位移寄存器"></p>
+<h2 id="数码寄存器和位移寄存器"><a href="#数码寄存器和位移寄存器" class="headerlink" title="数码寄存器和位移寄存器"></a>数码寄存器和位移寄存器</h2><p>一个寄存器具备以下4个功能：</p>
+<ul>
+<li>清除数码：相当于复位，将寄存器已存的数码清除</li>
+<li>接受数码：将外部输入的数码存储与寄存器中</li>
+<li>存储数码：保证数码在寄存器中不会莫名其妙发生变化</li>
+<li>输出数码：通过电路输出存储在寄存器中的数码</li>
+</ul>
+<p>由于都是在对数码进行操作，故将寄存器成为<code>数码寄存器</code></p>
+<p>而有些机器不仅仅能够实现上方4个功能，还能支持对已存数码做左右位移操作，故称为<code>位移寄存器</code></p>
+<hr>
+
+<p>在80X86和X86中，寄存器存在些许差别，这要分开研究</p>
+<h2 id="8086处理器"><a href="#8086处理器" class="headerlink" title="8086处理器"></a>8086处理器</h2><p>8086的寄存器都是16位的，如下图:</p>
+<p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/8086%E5%AF%84%E5%AD%98%E5%99%A8.jpg" alt="8086寄存器"></p>
+<p>其中AX、BX、CX、DX这四个通用寄存器可直接使用，但为了兼容8086之前更早的处理器，这些寄存器也可拆分别成两个8位的寄存器使用，若拆分，则分别表示高低位。</p>
+<p>在DOS debug命令中，可以使用R查看各个寄存器的内容，这是我在虚拟机运行的MS-DOS7.1的输出，如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-R</span><br><span class="line"></span><br><span class="line">AX=0000	BX=0000	CX=0000	DX=0000	SP=FFEE	BP=0000	SI=0000	DI=0000	</span><br><span class="line">DS=2B4A	ES=2B4A	SS=2B4A	CS=2B4A	IP=0000	NV NP EI PL NZ NA PO NC</span><br></pre></td></tr></table></figure>
+
+<h3 id="通用数据寄存器"><a href="#通用数据寄存器" class="headerlink" title="通用数据寄存器"></a>通用数据寄存器</h3><p>通用数据寄存器，又称为通用寄存器(General-Purpose Register)，该类寄存器使用频繁，用途广泛。</p>
+<p>在8086中有以下4个通用寄存器:</p>
+<table>
+<thead>
+<tr>
+<th>缩写</th>
+<th>名称</th>
+<th>定义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>AX</td>
+<td>累加器: accumulator</td>
+<td>用于计算结果的输入&#x2F;输出操作，使用频率高</td>
+</tr>
+<tr>
+<td>BX</td>
+<td>基址寄存器: Base Register</td>
+<td>存放基数位移定址的指正</td>
+</tr>
+<tr>
+<td>CX</td>
+<td>计数寄存器:Count Register</td>
+<td>计数，用于控制循环和位移等操作的次数</td>
+</tr>
+<tr>
+<td>DX</td>
+<td>数据寄存器(Data Register)</td>
+<td>可在运算时存储操作数，也可在IO时存储端口地址</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>AX、BX、CX、DX有时候又称作数据寄存器</p>
+</blockquote>
+<h4 id="必要时拆分通用寄存器"><a href="#必要时拆分通用寄存器" class="headerlink" title="必要时拆分通用寄存器"></a>必要时拆分通用寄存器</h4><p>通用寄存器的数量有限，有时候寄存器数量可能无法满足需求，这个时候可以将寄存器高低位分开单独存储，将一个寄存器拆分为两个来使用，如下:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">;低位存储20</span><br><span class="line">MOV AL,20</span><br><span class="line">;高位存储08</span><br><span class="line">MOV AH,8</span><br><span class="line"></span><br><span class="line">;------------结果----------</span><br><span class="line">;AX=0820	BX=0000	...</span><br><span class="line"></span><br><span class="line">;此时将AL赋值给BH，AH赋值给BL</span><br><span class="line">MOV BH,AL</span><br><span class="line">MOV BL,AH</span><br><span class="line"></span><br><span class="line">;------------结果----------</span><br><span class="line">;AX=0820	BX=2008	...</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="段寄存器-1"><a href="#段寄存器-1" class="headerlink" title="段寄存器"></a>段寄存器</h3><p>8086CPU为了能使用1MB的内存空间，故将内存采用分段的方式进行管理，由于数据总线只有16位，故其只能表达2^16就是64KB的内存空间，所以将内存空间分为1024&#x2F;64即16个段，并分为4种，并交由4个16为的段寄存器管理，段寄存器中存放了段基值(段基址的高16位)，即:</p>
+<table>
+<thead>
+<tr>
+<th>缩写</th>
+<th>名称</th>
+<th>定义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CS</td>
+<td>代码段寄存器: Code Segment</td>
+<td>存放当前运行的程序代码所在的段的段基值</td>
+</tr>
+<tr>
+<td>DS</td>
+<td>数据段寄存器: Data Segment</td>
+<td>存放当前程序所使用的数据所在的段的段基值</td>
+</tr>
+<tr>
+<td>SS</td>
+<td>堆栈段寄存器: Stack Segment</td>
+<td>存放当前程序所使用的堆栈所在的段的段基值</td>
+</tr>
+<tr>
+<td>ES</td>
+<td>附加段寄存器: Extra Segment</td>
+<td>存放当前程序所使用的附加数据所在的段的段基值</td>
+</tr>
+</tbody></table>
+<h3 id="指针寄存器"><a href="#指针寄存器" class="headerlink" title="指针寄存器"></a>指针寄存器</h3><p>指正寄存器，用于存放目标的地址。</p>
+<p>在8086CPU中存在两种指针寄存器，如下:</p>
+<table>
+<thead>
+<tr>
+<th>缩写</th>
+<th>名称</th>
+<th>定义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>BP</td>
+<td>基址指针寄存器: Base Pointer Register</td>
+<td>栈中的某一数据在栈内的偏移量，相对于SP的指针</td>
+</tr>
+<tr>
+<td>SP</td>
+<td>堆栈指针寄存器: Stack Pointer Register</td>
+<td>存储栈基址在段内的偏移量，相对于SS的指针</td>
+</tr>
+</tbody></table>
+<p>BP，SP，SS(堆栈段寄存器)一般三种连用</p>
+<p>SS保存了堆栈段的段基址，SP存储了堆栈位于段内的偏移量，BP存储了堆栈中数据的基地址</p>
+<h3 id="变址寄存器"><a href="#变址寄存器" class="headerlink" title="变址寄存器"></a>变址寄存器</h3><p>变址：操作数在存储单元中某相对位置的偏移地址，8086CPU中有两个变址寄存器，分别是:</p>
+<table>
+<thead>
+<tr>
+<th>缩写</th>
+<th>名称</th>
+<th>定义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SI</td>
+<td>源变址寄存器: Source Index</td>
+<td>附加数据地址在段内的偏移量，相对与ES的指针</td>
+</tr>
+<tr>
+<td>DI</td>
+<td>目标变址寄存器: Destination Index</td>
+<td>数据地址在段内的偏移量，相对于DS的指针</td>
+</tr>
+</tbody></table>
+<h3 id="控制寄存器"><a href="#控制寄存器" class="headerlink" title="控制寄存器"></a>控制寄存器</h3><p>控制寄存器是一个用于存储和表达CPU操作模式以及当前任务特性的一个寄存器，</p>
+<p>在8086处理器中其实没有当下意义上的控制寄存器，而是使用指令指针寄存器加上标志寄存器实现，即：</p>
+<table>
+<thead>
+<tr>
+<th>缩写</th>
+<th>名称</th>
+<th>定义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>IP</td>
+<td>指令指针寄存器: Instruction Pointer</td>
+<td>指向指令地址的在代码段内的偏移量，相对于CS的指针</td>
+</tr>
+<tr>
+<td>FLAGS</td>
+<td>标志寄存器: Flags</td>
+<td>用于存储类现在控制类似现在控制寄存器的标志位，比较特殊，看下面</td>
+</tr>
+</tbody></table>
+<h4 id="标志寄存器"><a href="#标志寄存器" class="headerlink" title="标志寄存器"></a>标志寄存器</h4><p>标志寄存器中记录了多个标志位的属性，而各标志位则表示CPU在运行程序的过程中的一些状态，标志位均由CPU自动生成，在DOS DEBUG命令中使用R命令可以看到末尾输出了若干标志位的值，如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">-R</span><br><span class="line"></span><br><span class="line">AX=0000	BX=0000	CX=0000	DX=0000	SP=FFEE	BP=0000	SI=0000	DI=0000	</span><br><span class="line">DS=2B4A	ES=2B4A	SS=2B4A	CS=2B4A	IP=0000	NV NP EI PL NZ NA PO NC</span><br><span class="line">;NV NP EI PL NZ NA PO NC 就是标志位的值</span><br></pre></td></tr></table></figure>
+
+<p>标志位具体作用如下:</p>
+<table>
+<thead>
+<tr>
+<th>标识名称</th>
+<th>标识符描述</th>
+<th>1(缩写)</th>
+<th>1(描述)</th>
+<th>0(缩写)</th>
+<th>0(描述)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>OF:溢出标志</td>
+<td>表运算结果是否超出机器表达能力</td>
+<td>OV</td>
+<td>overflowValue<br>溢出</td>
+<td>NV</td>
+<td>noOverflow<br>未溢出</td>
+</tr>
+<tr>
+<td>DF:方向标志</td>
+<td>表串操作的地址的方向变化</td>
+<td>DN</td>
+<td>down<br>每次串操作后DI和SI递减，即由高向低变化</td>
+<td>UP</td>
+<td>up<br>每次串操作后DI和SI递增，即由低向高变化</td>
+</tr>
+<tr>
+<td>IF:中断标志</td>
+<td>Interrupt Enable Flag<br>表可处理器是否屏蔽中断请求</td>
+<td>DI</td>
+<td>disable<br>处理器响应中断请求</td>
+<td>EI</td>
+<td>enable<br>处理器屏蔽中断请求</td>
+</tr>
+<tr>
+<td>SF:符号标志</td>
+<td>表运算结果的正负</td>
+<td>NG</td>
+<td>negative<br>结构为负</td>
+<td>PL</td>
+<td>plus<br>结果为正</td>
+</tr>
+<tr>
+<td>ZF:零标志</td>
+<td>表运算结果是否为0</td>
+<td>ZR</td>
+<td>zero<br>运算结果为0</td>
+<td>NZ</td>
+<td>noZero<br>运算结果不为0</td>
+</tr>
+<tr>
+<td>AF:辅助进位标志</td>
+<td>表在字节运算是D3位是否项D4位进&#x2F;借位</td>
+<td>AC</td>
+<td>auxiliaryCarry<br>产生借&#x2F;进位</td>
+<td>NA</td>
+<td>noAuxiliaryCarry<br>未产生借&#x2F;进位</td>
+</tr>
+<tr>
+<td>PF:奇偶标志</td>
+<td>表执行指令的操作数的低8位中<code>1的个数</code>是偶数个还是奇数个</td>
+<td>PE</td>
+<td>parityEven<br>低8位中1个数位偶数</td>
+<td>PO</td>
+<td>parityOdd<br>低8位中1个数位奇数</td>
+</tr>
+<tr>
+<td>CF:进位标志</td>
+<td>表字节运算是D7位是否向D8位借&#x2F;进位<br>或在字运算时D15是否向D16位借&#x2F;进位</td>
+<td>CY</td>
+<td>carry<br>产生借&#x2F;进位</td>
+<td>CF</td>
+<td>noCarry<br>未产生借&#x2F;进位</td>
+</tr>
+<tr>
+<td>TF:陷阱标志</td>
+<td>Trap Flag<br>是否工作在单步调试中断下,需IF&#x3D;1时才会生效，TF在DEBUG命令中不可见</td>
+<td>?</td>
+<td>每执行一步都会产生一个中断请求</td>
+<td>?</td>
+<td>不要产生中断请求</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>Dn:表示二进制字节数据从右往左数第n位数</p>
+</blockquote>
+<blockquote>
+<p>英文名有些是我猜的，英语不好，可能有错。</p>
+</blockquote>
+<h2 id="i386处理器"><a href="#i386处理器" class="headerlink" title="i386处理器"></a>i386处理器</h2><p>X86时代，CPU内部的部分寄存器被扩展到32位，并且将之前80X86时代的指正寄存器和变址寄存器页归类到通用寄存器</p>
+<p>而这些被扩展的寄存器都在原有名字前加上了E，也就是extension的缩写</p>
+<p>如下：</p>
+<p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/i386%E5%AF%84%E5%AD%98%E5%99%A8.png" alt="i386寄存器"></p>
+<h3 id="通用寄存器-32Bit"><a href="#通用寄存器-32Bit" class="headerlink" title="通用寄存器(32Bit)"></a>通用寄存器(32Bit)</h3><p>通用寄存器的功能与之前8086相差不大，主要还是被扩展到了32位</p>
+<p>为兼容之前的程序，被扩展到32位的通用寄存器依旧可以将其低16位拆出单独使用，其命名也和8086时一样，且AX、BX、CX、DX，通过依旧可再继续分别拆分成两个8位寄存器。</p>
+<h3 id="指令指针寄存器-32Bit"><a href="#指令指针寄存器-32Bit" class="headerlink" title="指令指针寄存器(32Bit)"></a>指令指针寄存器(32Bit)</h3><p>指令指针寄存器也被扩展到32位，依旧表示在指令地址在代码段中的偏移量，EIP的低16位可单独拿出来使用，即和原来的IP一样</p>
+<h3 id="标志寄存器-32Bit"><a href="#标志寄存器-32Bit" class="headerlink" title="标志寄存器(32Bit)"></a>标志寄存器(32Bit)</h3><p>标志寄存器(EFLAGS)用于存放命令在运行过程中产生的一些特征。在X86中也被扩展到32位，并在其原先的基础上也增加了标志位,如下<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_39524247/article/details/112107720">图片来源</a>:</p>
+<p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/32%E4%BD%8D%E6%A0%87%E5%BF%97%E4%BD%8D%E5%9B%BE.jpg" alt="32位标志位图"></p>
+<p>在之前的基础上，X86主要新增了如下寄存器</p>
+<table>
+<thead>
+<tr>
+<th>标识名称</th>
+<th>标识符描述</th>
+<th>1(缩写)</th>
+<th>1(描述)</th>
+<th>0(缩写)</th>
+<th>0(描述)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>IOPL: I&#x2F;O特权标志</td>
+<td>比较特别，用2Bit表示，表一个阈值，只有进程的特权级小于阈值时该IO指令才被允许执行</td>
+<td>？</td>
+<td>&#x2F;</td>
+<td>？</td>
+<td>&#x2F;</td>
+</tr>
+<tr>
+<td>NT: 嵌套任务标志</td>
+<td>表当前任务是否嵌套在其他任务中</td>
+<td>？</td>
+<td>被嵌套</td>
+<td>？</td>
+<td>未被嵌套</td>
+</tr>
+<tr>
+<td>RF: 重启动标志</td>
+<td>表当遇到异常时，是否发生中断</td>
+<td>？</td>
+<td>不会产生中断</td>
+<td>？</td>
+<td>会产生中断</td>
+</tr>
+<tr>
+<td>VM: 虚拟8086模式标志</td>
+<td>表是否将该任务切换到虚拟8086模式下运行</td>
+<td>？</td>
+<td>任务在虚拟8086模式中运行</td>
+<td>？</td>
+<td>任务在保护模式运行</td>
+</tr>
+</tbody></table>
+<p>VIF和VIP貌似和IF标志有关，资料较少，且80386处理器还没有该标志，貌似是在某代奔腾处理器后才出现。</p>
+<p>ID标志只在奔腾处理器上才有，表示该处理器是否支持CPUID命令。</p>
+<h3 id="控制寄存器-X86"><a href="#控制寄存器-X86" class="headerlink" title="控制寄存器(X86)"></a>控制寄存器(X86)</h3><p>X86的控制寄存器概念上和80X86不一样，准确说是80X86那时候没有现在意义上控制寄存器的概念。此时的控制寄存器是一个个独立的个体，控制寄存器中可以分出若干个控制位，用于控制和确定处理器的一些特性。</p>
+<p>X86控制寄存器有4个控制寄存器(某代奔腾与80486后为5个)，都为32位，如下:</p>
+<p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/X86%E6%8E%A7%E5%88%B6%E5%AF%84%E5%AD%98%E5%99%A8%E7%BB%93%E6%9E%84.jpg" alt="X86控制寄存器结构"></p>
+<h4 id="CR0"><a href="#CR0" class="headerlink" title="CR0"></a>CR0</h4><p>CR0主要记录一些CPU重要的特性的状态。</p>
+<table>
+<thead>
+<tr>
+<th>控制位名称</th>
+<th>位置</th>
+<th>描述</th>
+<th>0</th>
+<th>1</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PE: Protedted Enable</td>
+<td>0</td>
+<td>启用保护</td>
+<td>运行在实模式</td>
+<td>运行在保护模式</td>
+</tr>
+<tr>
+<td>MP: Moniter coprocessor</td>
+<td>1</td>
+<td>协处理器是否可供任务使用</td>
+<td>否</td>
+<td>是</td>
+</tr>
+<tr>
+<td>EM: Emulate coprocessor</td>
+<td>2</td>
+<td>当协处理器不存在时，是否仿真协处理器</td>
+<td>抛出设备不存在异常</td>
+<td>将由软件模拟</td>
+</tr>
+<tr>
+<td>TS: Task Switched</td>
+<td>3</td>
+<td>协处理器状态是否以保存</td>
+<td>否</td>
+<td>是</td>
+</tr>
+<tr>
+<td>ET: Extension Type</td>
+<td>4</td>
+<td>处理器扩展信息，表示协处理器类型</td>
+<td>使用80287协处理器</td>
+<td>使用80387(80X87)协处理器</td>
+</tr>
+<tr>
+<td>NE: Numeric Error</td>
+<td>5</td>
+<td>80486及以上CPU：选择何种协处理器错误机制</td>
+<td>启用80X87内部错误报告基址</td>
+<td>启用PC形式的80X87内部错误报告基址</td>
+</tr>
+<tr>
+<td>WP: Write Protect</td>
+<td>16</td>
+<td>80486后才有，是否开启写保护，阻止超级用户程序向用户级只读页面的写入</td>
+<td>禁用(放行)</td>
+<td>开启(阻止)</td>
+</tr>
+<tr>
+<td>AM: Alignment Mask</td>
+<td>18</td>
+<td>是否启用线性地址对其检查</td>
+<td>否(允许任意地址访问)</td>
+<td>是(不对齐报错)</td>
+</tr>
+<tr>
+<td>NW: Not Writethrough</td>
+<td>29</td>
+<td>指定CPU缓存写策略</td>
+<td>Write-through策略(写缓存时更新内存)</td>
+<td>Write-back策略(写缓存时不更新内存)</td>
+</tr>
+<tr>
+<td>CD: Cache Disable</td>
+<td>30</td>
+<td>启用缓存</td>
+<td>否</td>
+<td>是</td>
+</tr>
+<tr>
+<td>PG: Paging</td>
+<td>31</td>
+<td>启用分页机制</td>
+<td>否(分页相关控制位可能会失效)</td>
+<td>是</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>ET在后期CPU中的意义待研究，这里是80386(i386)处理器的。</p>
+</blockquote>
+<blockquote>
+<p>NE资料比较乱，目前使用百度百科中在80486上的定义</p>
+</blockquote>
+<h4 id="CR1"><a href="#CR1" class="headerlink" title="CR1"></a>CR1</h4><blockquote>
+<p>CR1被保留备用，暂无意义。当然、也有可能是没对外公布。</p>
+</blockquote>
+<h4 id="CR2"><a href="#CR2" class="headerlink" title="CR2"></a>CR2</h4><p>CR2和分页机制有关，它很特别，整个寄存器存放一个线性地址(也就是和分页机制去找物理地址的那个)，用于保存最近一次出现页异常时所使用的那个线性地址，以便操作系统处理异常。</p>
+<h4 id="CR3"><a href="#CR3" class="headerlink" title="CR3"></a>CR3</h4><p>CR3也是和分页机制有关，在之前[线性地址](&#x2F;#线性地址(linear address))中提到，当TLB未命中时，将通过CR3取寻找页目录(Page Directory)的位置。正因如此，CR3也被称为PDBR。</p>
+<p>在CR3中，高20位保存着也目录基址的高20位，而页目录基址的低12位假定为0，这就构成了当前活跃进程的页目录基址。因此每个页目录基址正好是4KB对齐，且每个页目录大小为4KB。由于页目录项大小为4B，故一个页目录可存放1024个项。</p>
+<p>在80386中CR3大小为32位，也目录基址仅占据20位，故仍有空间用于控制位，如下:</p>
+<table>
+<thead>
+<tr>
+<th>控制位名称</th>
+<th>位置</th>
+<th>描述</th>
+<th>0</th>
+<th>1</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PWT</td>
+<td>3</td>
+<td>页在被缓存时是否页写入内存</td>
+<td>否</td>
+<td>是</td>
+</tr>
+<tr>
+<td>PCD</td>
+<td>4</td>
+<td>页是否不可被缓存</td>
+<td>可</td>
+<td>不可</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>其实这两个控制位和在页目录项中的同名控制位意思一样</p>
+</blockquote>
+<h4 id="CR4"><a href="#CR4" class="headerlink" title="CR4"></a>CR4</h4><p>CR4好像是80486以及某代奔腾处理器后出现的，用于表示一些后期的扩展标识，如下:</p>
+<table>
+<thead>
+<tr>
+<th>控制位名称</th>
+<th>位置</th>
+<th>描述</th>
+<th>0</th>
+<th>1</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>VME</td>
+<td>0</td>
+<td>是否在虚拟8086模式下启用中断和异常处理扩展</td>
+<td>否</td>
+<td>将异常和中断回调给8086程序，能够提高性能</td>
+</tr>
+<tr>
+<td>PVI</td>
+<td>1</td>
+<td>是否启用保护模式下虚拟中断</td>
+<td>在保护模式下禁用VIF(virtual interrupt flag)</td>
+<td>在保护模式下启用VIF(virtual interrupt flag)</td>
+</tr>
+<tr>
+<td>TSD</td>
+<td>2</td>
+<td>禁用特权级为0之外的程序获取处理器时间戳</td>
+<td>允许任何特权级上执行RDTSC指令</td>
+<td>仅允许特权级为0的进程执行RDTSC指令</td>
+</tr>
+<tr>
+<td>DE</td>
+<td>3</td>
+<td>启用调试扩展</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr>
+<td>PSE</td>
+<td>4</td>
+<td>是否开启4MB大分页模式</td>
+<td>否、使用经典模式</td>
+<td>是</td>
+</tr>
+<tr>
+<td>PAE</td>
+<td>5</td>
+<td>是否开启物理地址扩展(PEA)</td>
+<td>使用32位物理地址</td>
+<td>扩展到36位</td>
+</tr>
+<tr>
+<td>MCE</td>
+<td>6</td>
+<td>是否启用某种异常检测(没看懂文档)</td>
+<td>否</td>
+<td>是</td>
+</tr>
+<tr>
+<td>PGE</td>
+<td>7</td>
+<td>是否启用全局页面(将常用或共享内容放到公共页内，貌似能优化TBL)</td>
+<td>否</td>
+<td>是</td>
+</tr>
+<tr>
+<td>PCE</td>
+<td>8</td>
+<td>禁用特权级为0之外的程序获取处理器性能计数器信息</td>
+<td>允许任意特权级的进程执行RDPMC命令</td>
+<td>仅允许特权级为0的进程执行RDPMC命令</td>
+</tr>
+<tr>
+<td>OSFXSR</td>
+<td>9</td>
+<td>操作系统是否能够支FXSAVE和FXRSTOR指令</td>
+<td>否</td>
+<td>是</td>
+</tr>
+<tr>
+<td>OSXMMEXCPT</td>
+<td>10</td>
+<td>操作系统是否能够支持无掩码的SIMD异常</td>
+<td>否</td>
+<td>是</td>
+</tr>
+<tr>
+<td>VMXE</td>
+<td>13</td>
+<td>是否启用VMX操作(和因特尔虚拟化有关)</td>
+<td>否</td>
+<td>是</td>
+</tr>
+<tr>
+<td>SMXE</td>
+<td>14</td>
+<td>是否启用SMX(Safer Mode Extensions，某种安全模式)</td>
+<td>否</td>
+<td>是</td>
+</tr>
+<tr>
+<td>PCIDE</td>
+<td>17</td>
+<td>是否启用进程上下文标识符(process-context identifiers)</td>
+<td>否</td>
+<td>是</td>
+</tr>
+<tr>
+<td>OSXSMXE</td>
+<td>18</td>
+<td>操作系统是否能够支持SMX(Safer Mode Extensions)</td>
+<td>否</td>
+<td>是</td>
+</tr>
+<tr>
+<td>SMEP</td>
+<td>20</td>
+<td>是否启用SMPE(Supervisor Mode Execution Protection,可以防止一些不受信任的程序访问到内核空间)</td>
+<td>否</td>
+<td>是</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>PAE(Physical Address Extension, 物理地址扩展),4GB寻址范围无法满足部分服务器需求故通过某些方法将物理地址扩展到36位，使得寻址空间为2^36&#x3D;64GB</p>
+</blockquote>
+<h1 id="寻址模式"><a href="#寻址模式" class="headerlink" title="寻址模式"></a>寻址模式</h1><blockquote>
+<p>摘抄维基百科的一句提示:</p>
+<p>各种寻址模式都没有一个被普遍接受的的名称。不同的作者和计算机制造商可以为相同的寻址模式赋予不同的名称，或者为不同的寻址模式赋予相同的名称。</p>
+</blockquote>
+<p>寻址模式(Addressing modes)是CPU设计中<a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E6%8C%87%E4%BB%A4%E9%9B%86%E6%9E%B6%E6%A7%8B">指令集架构</a>的一部分，是CPU通过缓存的数据或特定常数计算出内存地址的一种模式。</p>
+<p>早期8086与后期X86(例如i386)之间存在差别，i386寻址能力由1MB突破到4GB、指令的操作数提高到32位</p>
+<h2 id="直接寻址"><a href="#直接寻址" class="headerlink" title="直接寻址"></a>直接寻址</h2><p>直接寻址又称为绝对寻址，正如字面意思一样，直接寻址的指令中的立即数就是操作数的有效地址，直接寻址就是直接通过一个给定的地址跳到目标数据所在位置，找到目标数据。</p>
+<p>在8086CPU中，寻址指令中的操作数地址<code>只是该操作数地址的16位偏移量</code>，还需要去DS(数据段寄存器)中拿到16位段基值，相结合才是真正的操作数地址</p>
+<p>MOV AX [2000H]</p>
+<p>在没特殊说明的情况下，直接寻址的操作数一般在内存的数据段中。也就是放在DS里面，所以就隐含了段寄存器是DS，但在8086&#x2F;8088中，因为其设计特殊，允许段超越，即允许CS，SS，ES作为段寄存器，测试需要在指令中标注，并在地址参数前加上“:”;</p>
+<p>MOV AX EX ：[2000H]</p>
+<h2 id="相对寻址"><a href="#相对寻址" class="headerlink" title="相对寻址"></a>相对寻址</h2><p>相对寻址，相对是对自己而言，通常当前指令地址就是相对地址，而相对地址一般存放在PC(程序计数器)中，然后加上偏移量，而偏移量一般是指令中的立即数，通过两者相加得到有效地址。</p>
+<p>相对寻址与基址+偏移量寻址有所不同，相对寻址只能通过当前指令地址作为相对地址，而基址+偏移量寻址的相对地址可变。百度百科的这张图就很直观。</p>
+<p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E7%9B%B8%E5%AF%B9%E5%AF%BB%E5%9D%80%E7%A4%BA%E4%BE%8B%E5%9B%BE.jpg" alt="相对寻址示例图"></p>
+<h2 id="基址-偏移量寻址"><a href="#基址-偏移量寻址" class="headerlink" title="基址+偏移量寻址"></a>基址+偏移量寻址</h2><p>基址加偏移量寻址，就例如之前通过段基址加段内偏移量得到线性地址一样，由一个基址(也可以看做是一个相对地址)与偏移量相加得到有效地址。</p>
+<p>其中基址和偏移量都可以来源于寄存器。其中基址来源于可以是基址寄存器BX(数据基址寄存器)；偏移量来自变址寄存器SI(源变址寄存器)、DI(目标变址寄存器)。</p>
+<p>偏移量也可以是指令中的立即数或是某个计算结果。</p>
+<h2 id="寄存器寻址"><a href="#寄存器寻址" class="headerlink" title="寄存器寻址"></a>寄存器寻址</h2><p>寄存器寻址本质上表示在指令参数中没有有效地址，且操作数的有效地址不在内存中，而是放在CPU的通用寄存器中。在某些计算机上寄存器寻址不被认为是寻址模式。</p>
+<p>下面的寄存器间接寻址就是寄存器寻址与间接寻址的概念的结合，但寄存器寻址和间接寻址本身概念上是有点区别的。</p>
+<h2 id="间接寻址"><a href="#间接寻址" class="headerlink" title="间接寻址"></a>间接寻址</h2><p>间接是相对的，间接寻址表示指令中给出的地址并不是操作数的有效地址，而是一个指针(也可以叫指示器)，所指位置存放着有效地址，若指示器指向一个寄存器中的某一位置，那就和前面的寄存器寻址的概念结合，变成寄存器间接寻址。</p>
+<p>间接寻址是在直接寻址的基础上建立的，当执行若干次间接寻址得到有效地址后，会再进行一次直接寻址得到目标数据，间接寻址在百度百科上的图片也很直观，如下：</p>
+<p><img data-src="/../image/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/%E9%97%B4%E6%8E%A5%E5%AF%BB%E5%9D%80%E6%A6%82%E8%BF%B0%E5%9B%BE.png" alt="间接寻址概述图"></p>
+<h3 id="寄存器间接寻址"><a href="#寄存器间接寻址" class="headerlink" title="- 寄存器间接寻址"></a>- 寄存器间接寻址</h3><p>若指针指向的位置是某一寄存器中的某一位置，那么就是寄存器间接寻址，在寄存器间接寻址方式中，操作数的有效地址存放在SI、DI、BX、BP其中之一。</p>
+<p>如果有效地址在SI、DI、BX中，则以DS段寄存器中的内容为段值。</p>
+<p>如果有效地址在BP中，则以SS段寄存器中的内容为段值。</p>
+<p>通常指令写作 MOV AX,[SI] ；其中[SI]表示寄存器SI中的地址。</p>
+<p>在MCS-51单片机中，为了对寄存器寻址和寄存器间接寻址加以区别，在寄存器名称前加一个符号@来表示寄存器间接寻址，如MOV A,@R0。</p>
+<h2 id="隐含寻址"><a href="#隐含寻址" class="headerlink" title="隐含寻址"></a>隐含寻址</h2><p>隐含寻址模式，在X86汇编语言中也称为隐式寻址模式</p>
+<p>隐含寻址指令是一种可能没有在指令中明确源 和&#x2F;或 目标的一种指令，其指令的操作码可能就隐含了该指令操作时的源 和&#x2F;或 目标。</p>
+<p><em>不知道这么说会不会好理解一点点</em></p>
+<p>例如在执行ADD指令时，ADD指令本身就隐含了本次操作的目标地址</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">;---先赋值---</span><br><span class="line">MOV AX,18</span><br><span class="line">;---再去累加，累加的东西目标就是源自己---</span><br><span class="line">ADD AX,5</span><br><span class="line"></span><br><span class="line">;-----------------------</span><br><span class="line">;AX=001D  ...</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+<p><br><br><br><br><br><br></p>
+<p style="text-align:center">>------参考文献------<</p>
+
+<blockquote>
+<p><a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E5%86%85%E5%AD%98?fromModule=lemma_search-box#1">百度百科-内存</a></p>
+<p><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/Intel_8086">维基百科-Intel 8086</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/wdqqbyt4321/article/details/96978639">CSDN-呆呆觉得这事儿不简单-内存寻址(1，2)</a></p>
+<p><a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E5%AE%9E%E6%A8%A1%E5%BC%8F/7354531?fr=ge_ala">百度百科-实模式</a></p>
+<p><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E7%9C%9F%E5%AF%A6%E6%A8%A1%E5%BC%8F">维基百科-实模式</a></p>
+<p><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E4%BF%9D%E8%AD%B7%E6%A8%A1%E5%BC%8F">维基百科-保护模式</a></p>
+<p><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E9%95%BF%E6%A8%A1%E5%BC%8F">维基百科-长模式</a></p>
+<p><a target="_blank" rel="noopener" href="http://en.cnki.com.cn/Article_en/CJFDTotal-HDZR200001012.htm">Jing_Sen L .The Memory Address of Intel X86 Processor in 16 bit Protected Mode[J].JOURNAL OF HENAN UNIVERSITY (NATURAL SCIENCE), 2000.</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/SuperGreen/p/15490472.html">博客园-内存管理——段描述符</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.intel.cn/content/www/cn/zh/developer/articles/technical/intel-sdm.html?iid=tech_vt_tech+64-32_manuals">Intel® 64 and IA-32 Architectures Software Developer Manuals</a></p>
+<p><a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E9%80%BB%E8%BE%91%E5%9C%B0%E5%9D%80/3283849?fr=ge_ala">百度百科-逻辑地址</a></p>
+<p><a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E6%AE%B5%E5%9F%BA%E5%9D%80/7339630?fr=ge_ala">百度百科-段基址</a></p>
+<p><a target="_blank" rel="noopener" href="https://doc.taixueshu.com/journal/20020098cqdxxb.html">湛辉来.X86体系中保护模式下的内存访问机制[J].重庆大学学报(自然科学版),2002,(6):67-70.</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/csdn_gddf102384398/article/details/100089178">CSDN-x86架构之实模式和保护模式的简单分析</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/OOFFrankDura/article/details/84403741">CSDN-操作系统OS-分段式内存管理为什么不会产生内碎片</a></p>
+<p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/444272105">知乎-操作系统期末复习-分页存储管理</a></p>
+<p><a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E7%BA%BF%E6%80%A7%E5%9C%B0%E5%9D%80/9013682?fr=ge_ala">百度百科-线性地址</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_42052102/article/details/83063614">CSDN-PWT、PCD（填坑篇）</a></p>
+<p><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/zh-hans/%E7%89%A9%E7%90%86%E5%9C%B0%E5%9D%80">维基百科-物理地址</a></p>
+<p><a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E7%89%A9%E7%90%86%E5%9C%B0%E5%9D%80/2901583?fromModule=lemma_search-box">百度百科-物理地址</a></p>
+<p><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E5%AF%BB%E5%9D%80%E6%A8%A1%E5%BC%8F">维基百科-寻址模式</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_45745854/article/details/127310343">CSDN-8086CPU的寻址方式：浅谈8种寻址方式</a></p>
+<p><a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E6%B1%87%E7%BC%96%E6%8C%87%E4%BB%A4/9979890?fr=ge_ala">百度百科-汇编指令</a></p>
+<p><a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E7%AB%8B%E5%8D%B3%E6%95%B0/3062020?fr=ge_ala">百度百科-立即数</a></p>
+<p><a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E7%9B%B4%E6%8E%A5%E5%AF%BB%E5%9D%80/302009?fr=ge_ala">百度百科-直接寻址</a></p>
+<p><a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E7%9B%B8%E5%AF%B9%E5%AF%BB%E5%9D%80?fromModule=lemma_search-box">百度百科-相对寻址</a></p>
+<p><a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E5%9F%BA%E5%9D%80%E5%8A%A0%E5%8F%98%E5%9D%80%E5%AF%BB%E5%9D%80%E6%96%B9%E5%BC%8F/6686487?fr=ge_ala">百度百科-基址加变址寻址方式</a></p>
+<p><a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E9%97%B4%E6%8E%A5%E5%AF%BB%E5%9D%80/10335629?fr=ge_ala">百度百科-简介寻址</a></p>
+<p><a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E5%AF%84%E5%AD%98%E5%99%A8/187682">百度百科-寄存器</a></p>
+<p><a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E9%80%9A%E7%94%A8%E5%AF%84%E5%AD%98%E5%99%A8/283978">百度百科-通用寄存器</a></p>
+<p><a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E5%9F%BA%E5%9C%B0%E5%9D%80%E5%AF%84%E5%AD%98%E5%99%A8/12752082?fr=ge_ala">百度百科-基地址寄存器</a></p>
+<p><a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E6%AE%B5%E5%AF%84%E5%AD%98%E5%99%A8/6616912?fr=ge_ala">百度百科-段寄存器</a></p>
+<p><a target="_blank" rel="noopener" href="https://baike.baidu.com/item/%E6%8E%A7%E5%88%B6%E5%AF%84%E5%AD%98%E5%99%A8/9335215?fr=ge_ala">百度百科-控制寄存器</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/m0_51303687/article/details/120794806">CSDN-2021-10-16 8086FLAGS寄存器及其状态说明</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_41872042/article/details/88792313">CSDN-微机接口与汇编语言——dosbox中debug下的标志位解释</a></p>
+<p>INTEL 80386 PROGRAMMER’S REFERENCE MANUAL 1986</p>
+<p>一些由AI生成的资料以及来自AI的见解</p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/../image/wechatpay.png" alt="CanYue 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/../image/alipay.png" alt="CanYue 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>CanYue
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.canyue.top/article/X86%E5%86%85%E5%AD%98%E6%9C%BA%E5%88%B6%E7%9A%84%E5%B0%8F%E7%A0%94%E7%A9%B6/" title="X86内存机制的小研究">https://blog.canyue.top/article/X86内存机制的小研究/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh_CN" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BB%84%E6%88%90%E5%8E%9F%E7%90%86/" rel="tag"># 计算机组成原理</a>
+              <a href="/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" rel="tag"># 操作系统</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/article/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9C%A8%E5%BC%80%E6%9C%BA%E6%97%B6%E5%8F%91%E7%94%9F%E4%BA%86%E4%BB%80%E4%B9%88/" rel="prev" title="计算机在开机时发生了什么">
+                  <i class="fa fa-angle-left"></i> 计算机在开机时发生了什么
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/article/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E4%B8%8E%E5%AD%98%E5%82%A8%E5%99%A8/" rel="next" title="操作系统与存储器管理">
+                  操作系统与存储器管理 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2023 – 
+    <span itemprop="copyrightYear">2024</span>
+    <span class="with-love">
+      <i class="fa fa-code"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">CanYue</span>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdn.staticfile.net/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdn.staticfile.net/next-theme-pjax/0.6.0/pjax.min.js" integrity="sha256-vxLn1tSKWD4dqbMRyv940UYw4sXgMtYcK6reefzZrao=" crossorigin="anonymous"></script>
+  <script src="https://cdn.staticfile.net/fancyapps-ui/5.0.33/fancybox/fancybox.umd.js" integrity="sha256-+2+qOqR8CKoHh/AsVR9k2qaDBKWjYNC2nozhYmv5j9k=" crossorigin="anonymous"></script>
+  <script src="https://cdn.staticfile.net/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+  <script src="https://cdn.staticfile.net/pangu/4.0.7/pangu.min.js" integrity="sha256-j+yj56cdEY2CwkVtGyz18fNybFGpMGJ8JxG3GSyO2+I=" crossorigin="anonymous"></script>
+<script src="https://cdn.staticfile.net/hexo-theme-next/8.19.2/comments.min.js"></script><script src="https://cdn.staticfile.net/hexo-theme-next/8.19.2/utils.min.js"></script><script src="https://cdn.staticfile.net/hexo-theme-next/8.19.2/motion.min.js"></script><script src="https://cdn.staticfile.net/hexo-theme-next/8.19.2/next-boot.min.js"></script><script src="https://cdn.staticfile.net/hexo-theme-next/8.19.2/pjax.min.js"></script>
+
+  <script src="https://cdn.staticfile.net/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="https://cdn.staticfile.net/hexo-theme-next/8.19.2/third-party/search/local-search.min.js"></script>
+
+
+
+
+  <script src="https://cdn.staticfile.net/hexo-theme-next/8.19.2/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdn.staticfile.net/hexo-theme-next/8.19.2/third-party/pace.min.js"></script>
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdn.staticfile.net/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="https://cdn.staticfile.net/hexo-theme-next/8.19.2/third-party/math/mathjax.min.js"></script>
+
+
+
+</body>
+</html>
